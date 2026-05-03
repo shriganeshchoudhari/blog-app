@@ -1,0 +1,39 @@
+{{- /* Canary rollout manifest for Argo Rollouts */ -}}
+{{- if .Values.rollout.enabled -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "gblog.fullname" . }}-rollout
+  labels:
+    app: {{ include "gblog.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "gblog.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "gblog.name" . }}
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 80
+  strategy:
+    canary:
+      analysis:
+        templates:
+          - templateName: gblog-success-rate
+        args:
+          - name: service-name
+            value: {{ include "gblog.fullname" . }}
+      steps:
+        - setWeight: 10
+        - pause: { duration: 300s }
+        - setWeight: 50
+        - pause: { duration: 300s }
+        - setWeight: 100
+{{- end -}}

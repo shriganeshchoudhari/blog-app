@@ -1,0 +1,43 @@
+image:
+  repository: dockerhub/gblog-backend
+  tag: "v1.0.0"
+  pullSecrets:
+    - name: dockerhub-secret
+
+replicaCount: 3
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: gblog.example.com
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+
+resources:
+  limits:
+    cpu: "1000m"
+    memory: "1024Mi"
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+
+env:
+  - name: NODE_ENV
+    value: production
+  - name: LOG_LEVEL
+    value: info
+  - name: SPRING_DATASOURCE_URL
+    value: "jdbc:postgresql://REPLACE_WITH_RDS_ENDPOINT:5432/gblog"
+
+otel:
+  enabled: true
+  endpoint: "http://otel-collector:4317"

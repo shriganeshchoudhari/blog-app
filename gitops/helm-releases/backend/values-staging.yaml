@@ -1,0 +1,2 @@
+tag: staging
+image: dockerhub/gblog-backend:staging

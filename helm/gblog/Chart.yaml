@@ -1,0 +1,6 @@
+apiVersion: v2
+name: gblog
+description: Helm chart for G-Blog X services
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

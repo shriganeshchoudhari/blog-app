@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gblog.fullname" . }}
+  labels:
+    app: {{ include "gblog.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "gblog.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "gblog.name" . }}
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "blog-role"
+        vault.hashicorp.com/agent-inject-secret-database: "secret/data/gblog/db"
+        vault.hashicorp.com/agent-inject-template-database: |
+          {{- with secret "secret/data/gblog/db" -}}
+          export SPRING_DATASOURCE_USERNAME="{{ .Data.data.username }}"
+          export SPRING_DATASOURCE_PASSWORD="{{ .Data.data.password }}"
+          {{- end -}}
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          env: {{- toYaml .Values.env | nindent 12 }}
+          resources:
+            {{- if .Values.resources }}
+            {{ toYaml .Values.resources | nindent 12 }}
+            {{- else }}
+            {}
+            {{- end }}
+        - name: otel-collector
+          image: otel/opentelemetry-collector:latest
+          env:
+            - name: OTEL_COLLECTOR_OTLP_ENDPOINT
+              value: {{ .Values.otel.endpoint | quote }}
+      volumes: []

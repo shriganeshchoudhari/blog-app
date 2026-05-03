@@ -1,0 +1,9 @@
+# Terraform state and override files
+*.tfstate
+*.tfstate.backup
+*.tfvars
+*.tfvars.json
+.terraform/
+.terraform.lock.hcl
+crash.log
+*.log

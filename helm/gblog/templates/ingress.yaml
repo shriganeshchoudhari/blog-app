@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "gblog.fullname" . }}-ingress
+spec:
+  rules:
+    - host: blog.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "gblog.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
