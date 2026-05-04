@@ -69,8 +69,8 @@ resource "aws_route_table_association" "pub_b" {
 
 # NAT Gateway for Private Subnets
 resource "aws_eip" "nat" {
-  vpc = true
-  tags = { Name = "gblog-nat-eip" }
+  domain = "vpc"
+  tags   = { Name = "gblog-nat-eip" }
 }
 
 resource "aws_nat_gateway" "main" {
@@ -176,12 +176,18 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+resource "aws_key_pair" "deployer" {
+  key_name   = "gblog-key"
+  public_key = file("${path.module}/terra-key.pub")
+}
+
 resource "aws_instance" "ci" {
   ami = data.aws_ami.ubuntu.id
   instance_type = var.ci_instance_type
+  key_name      = aws_key_pair.deployer.key_name
   subnet_id = aws_subnet.public_a.id
   vpc_security_group_ids = [aws_security_group.ci_sg.id]
-  user_data = base64encode(file("${path.module}/scripts/bootstrap-aws-tools.sh"))
+  user_data_base64 = base64encode(file("${path.module}/scripts/bootstrap-aws-tools.sh"))
   tags = { Name = "gblog-ci" }
 }
 
@@ -276,18 +282,4 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   skip_final_snapshot  = true
-}
-
-output "ci_public_ip" {
-  value = aws_instance.ci.public_ip
-}
-
-variable "aws_region" {
-  type    = string
-  default = "us-east-1"
-}
-
-variable "ci_instance_type" {
-  type    = string
-  default = "t3.medium"
 }

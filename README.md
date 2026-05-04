@@ -31,15 +31,18 @@
 ## 🛠 Deployment Guide
 
 ### Prerequisites
-- AWS Account & CLI configured
-- Terraform >= 1.5
-- kubectl & Helm
-- Docker Hub account
+- **AWS CLI**: Installed and configured (`aws configure`).
+- **Terraform**: >= 1.5
+- **kubectl & Helm**: For cluster management.
+- **Docker Hub**: Account and credentials.
 
 ### 1. Provision Infrastructure
 Create the VPC, EKS, RDS, and the CI server.
 ```bash
 cd terraform
+# Generate keys for the CI node
+ssh-keygen -t rsa -b 4096 -f terra-key -N ""
+
 terraform init
 terraform apply -auto-approve
 ```
