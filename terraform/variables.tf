@@ -16,5 +16,5 @@ variable "db_password" {
 }
 
 variable "ci_instance_type" {
-  default = "t3.medium"
+  default = "m7i-flex.large"
 }

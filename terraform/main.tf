@@ -257,7 +257,7 @@ resource "aws_eks_node_group" "main" {
     max_size     = 3
     min_size     = 1
   }
-  instance_types = ["t3.medium"]
+  instance_types = ["m7i-flex.large"]
   depends_on = [
     aws_iam_role_policy_attachment.eks_node_policy,
     aws_iam_role_policy_attachment.eks_cni_policy,
