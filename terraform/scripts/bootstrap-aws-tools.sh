@@ -52,9 +52,15 @@ sudo usermod -aG docker jenkins
 echo "Starting SonarQube Server..."
 docker run -d --name sonarqube -p 9000:9000 sonarqube:lts
 
+echo "Installing Trivy..."
+wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+sudo apt-get update -y
+sudo apt-get install -y trivy
+
 sudo systemctl restart jenkins
 
 echo "Bootstrap complete."
-echo "Tools installed: docker, kubectl, awscli, helm, java17, maven, git, jenkins"
+echo "Tools installed: docker, kubectl, awscli, helm, java21, maven, git, jenkins, trivy, sonarqube"
 echo "Initial Jenkins Admin Password:"
 sudo cat /var/lib/jenkins/secrets/initialAdminPassword
