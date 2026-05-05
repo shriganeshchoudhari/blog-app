@@ -1,66 +1,59 @@
 #!/bin/bash
-set -euo pipefail
-LOGFILE=/var/log/bootstrap-aws-tools.log
-exec > >(tee -a $LOGFILE) 2>&1
+# Bootstrap Script for G-Blog X CI Node (Ubuntu 24.04 LTS)
 
-echo "Bootstrapping AWS CI node with required tools..."
-sudo apt-get update -y
-sudo apt-get install -y docker.io apt-transport-https ca-certificates curl software-properties-common lsb-release gnupg
+# 1. Update and Base Tools
+sudo apt update -y
+sudo apt install -y docker.io wget curl gnupg2 software-properties-common apt-transport-https ca-certificates lsb-release fontconfig unzip
+
+# 2. Docker Setup
 sudo systemctl enable docker --now
 sudo usermod -aG docker ubuntu
 
-echo "Installing kubectl..."
+# 3. Jenkins Installation
+sudo mkdir -p /etc/apt/keyrings
+sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+# 4. Java 21 (Adoptium) & Maven
+# Note: Adoptium supports 'noble' from temurin repos directly
+wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | sudo gpg --dearmor -o /etc/apt/keyrings/adoptium.gpg
+echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb jammy main" | sudo tee /etc/apt/sources.list.d/adoptium.list > /dev/null
+
+# 5. Trivy Security
+wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /etc/apt/keyrings/trivy.gpg
+echo "deb [signed-by=/etc/apt/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
+
+# 6. Install All Software
+sudo apt update -y
+sudo apt install -y jenkins temurin-21-jdk maven trivy git
+
+# 7. CLI Tools (kubectl, awscli, helm, argocd)
+# kubectl
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 chmod +x kubectl
 sudo mv kubectl /usr/local/bin/
 
-echo "Installing AWS CLI..."
-sudo snap install aws-cli --classic
+# AWS CLI v2 (binary install - works on all Ubuntu versions)
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+rm -rf awscliv2.zip aws/
 
-echo "Installing Helm..."
+# Helm
 curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-echo "Installing Java 21 & Maven..."
-sudo add-apt-repository -y ppa:openjdk-r/ppa
-sudo apt-get update -y
-sudo apt-get install -y openjdk-21-jdk maven
-
-echo "Installing Jenkins..."
-# Add Jenkins repo and key
-curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
-  /usr/share/keyrings/jenkins-keyring.asc > /dev/null
-echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
-  https://pkg.jenkins.io/debian-stable binary/" | sudo tee \
-  /etc/apt/sources.list.d/jenkins.list > /dev/null
-
-sudo apt-get update -y
-sudo apt-get install -y jenkins
-
-# Enable and start Jenkins
-sudo systemctl enable jenkins
-sudo systemctl start jenkins
-
-echo "Installing Git & ArgoCD CLI..."
-sudo apt-get install -y git
+# ArgoCD CLI
 curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
 sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
 rm argocd-linux-amd64
 
-# Add jenkins user to docker group
+# 8. Final Configuration
 sudo usermod -aG docker jenkins
-
-echo "Starting SonarQube Server..."
-docker run -d --name sonarqube -p 9000:9000 sonarqube:lts
-
-echo "Installing Trivy..."
-wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
-echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
-sudo apt-get update -y
-sudo apt-get install -y trivy
-
 sudo systemctl restart jenkins
 
-echo "Bootstrap complete."
-echo "Tools installed: docker, kubectl, awscli, helm, java21, maven, git, jenkins, trivy, sonarqube"
-echo "Initial Jenkins Admin Password:"
+# Start SonarQube container
+sudo docker run -d --name sonarqube -p 9000:9000 sonarqube:lts
+
+echo "Bootstrap Complete."
+echo "Jenkins Initial Admin Password:"
 sudo cat /var/lib/jenkins/secrets/initialAdminPassword

@@ -179,7 +179,7 @@ data "aws_ami" "ubuntu" {
   owners = ["099720109477"] # Canonical Ubuntu
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
   }
 }
 
@@ -254,17 +254,39 @@ resource "aws_iam_role_policy_attachment" "ecr_policy" {
   role       = aws_iam_role.eks_nodes.name
 }
 
+resource "aws_launch_template" "eks_nodes" {
+  name_prefix   = "gblog-eks-nodes-"
+  instance_type = "m7i-flex.large"
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name = "gblog-eks-node"
+    }
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
 resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "gblog-nodes"
   node_role_arn   = aws_iam_role.eks_nodes.arn
   subnet_ids      = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+
+  launch_template {
+    id      = aws_launch_template.eks_nodes.id
+    version = aws_launch_template.eks_nodes.latest_version
+  }
+
   scaling_config {
     desired_size = 2
     max_size     = 3
     min_size     = 1
   }
-  instance_types = ["m7i-flex.large"]
+
   depends_on = [
     aws_iam_role_policy_attachment.eks_node_policy,
     aws_iam_role_policy_attachment.eks_cni_policy,
