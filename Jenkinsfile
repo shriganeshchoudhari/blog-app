@@ -21,12 +21,20 @@ pipeline {
             }
         }
 
+        stage('Build') {
+            steps {
+                dir('backend-spring-boot') {
+                    sh 'mvn clean compile'
+                }
+            }
+        }
+
         stage('Security: SonarQube Scan') {
             when { expression { return params.RUN_SECURITY_SCAN } }
             steps {
                 sonarScan(
                     projectKey: 'gblog-backend',
-                    credentialsId: 'sonar-token'
+                    dir: 'backend-spring-boot'
                 )
             }
         }
