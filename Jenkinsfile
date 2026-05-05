@@ -59,23 +59,21 @@ pipeline {
 
         stage('Security: Trivy Scan') {
             when { expression { return params.RUN_SECURITY_SCAN } }
-            steps {
-                parallel {
-                    stage('Trivy: Backend') {
-                        steps {
-                            trivyScan(
-                                imageName: "${DOCKER_REPO}/gblog-backend",
-                                imageTag: "${params.BACKEND_TAG}"
-                            )
-                        }
+            parallel {
+                stage('Trivy: Backend') {
+                    steps {
+                        trivyScan(
+                            imageName: "${DOCKER_REPO}/gblog-backend",
+                            imageTag: "${params.BACKEND_TAG}"
+                        )
                     }
-                    stage('Trivy: Frontend') {
-                        steps {
-                            trivyScan(
-                                imageName: "${DOCKER_REPO}/gblog-frontend",
-                                imageTag: "${params.FRONTEND_TAG}"
-                            )
-                        }
+                }
+                stage('Trivy: Frontend') {
+                    steps {
+                        trivyScan(
+                            imageName: "${DOCKER_REPO}/gblog-frontend",
+                            imageTag: "${params.FRONTEND_TAG}"
+                        )
                     }
                 }
             }
