@@ -1,102 +1,101 @@
-@Library('my-shared-library') _
+@Library('Shared') _
 
 pipeline {
-  agent any
-  
-  environment {
-    DOCKER_REGISTRY = "docker.io/"
-    IMAGE_NAME = "gblog-backend"
-    IMAGE_TAG = "v${env.BUILD_NUMBER}"
-    AWS_REGION = "us-east-1"
-    CLUSTER_NAME = "gblog-eks"
-    APP_NAME = "gblog-app"
-  }
-
-  stages {
-    stage('Prepare Environment') {
-      steps {
-        gitSetup credentialsId: 'github-creds'
-        argocdLogin server: 'argocd.example.com', credentialsId: 'argocd-creds'
-        terraformApply dir: 'terraform'
-      }
+    agent any
+    
+    parameters {
+        string(name: 'BACKEND_TAG', defaultValue: 'latest', description: 'Tag for Backend Image')
+        string(name: 'FRONTEND_TAG', defaultValue: 'latest', description: 'Tag for Frontend Image')
+        booleanParam(name: 'RUN_SECURITY_SCAN', defaultValue: true, description: 'Run Trivy and SonarQube')
     }
 
-    stage('Infrastructure Setup') {
-      steps {
-        sh 'chmod +x terraform/scripts/install-cluster-tools.sh'
-        sh './terraform/scripts/install-cluster-tools.sh'
-      }
+    environment {
+        DOCKER_REPO = 'shriganeshdockerhub' // Your DockerHub username
+        SONAR_SERVER = 'Sonar'              // Must match Manage Jenkins > System
     }
 
-    stage('Build & Code Analysis') {
-      parallel {
-        stage('Maven Build') {
-          steps {
-            mavenBuild dir: 'backend-spring-boot', skipTests: false
-          }
-        }
-        stage('SonarQube Analysis') {
-          steps {
-            sonarScan projectKey: 'gblog-backend'
-          }
-        }
-      }
-    }
-
-    stage('Security Gating') {
-      parallel {
-        stage('OWASP Dependency Check') {
-          steps {
-            dir('backend-spring-boot') {
-              sh 'mvn org.owasp:dependency-check-maven:check'
-              dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
             }
-          }
         }
-        stage('Container Scan (Trivy)') {
-          steps {
-            trivyScan imageName: IMAGE_NAME, imageTag: IMAGE_TAG
-          }
+
+        stage('Security: SonarQube Scan') {
+            when { expression { return params.RUN_SECURITY_SCAN } }
+            steps {
+                sonarScan(
+                    projectKey: 'gblog-backend',
+                    credentialsId: 'sonar-token'
+                )
+            }
         }
-      }
-    }
 
-    stage('Build & Push to DockerHub') {
-      steps {
-        dockerBuild(
-          imageName: IMAGE_NAME, 
-          imageTag: IMAGE_TAG, 
-          context: './backend-spring-boot',
-          registry: DOCKER_REGISTRY,
-          credentialsId: 'dockerhub-creds'
-        )
-      }
-    }
-
-    stage('Quality Gate') {
-      steps {
-        timeout(time: 1, unit: 'HOURS') {
-          waitForQualityGate abortPipeline: true
+        stage('Build & Push: Backend') {
+            steps {
+                dir('backend-spring-boot') {
+                    dockerBuild(
+                        imageName: 'gblog-backend',
+                        imageTag: "${params.BACKEND_TAG}",
+                        registry: "${DOCKER_REPO}/",
+                        credentialsId: 'docker-creds'
+                    )
+                }
+            }
         }
-      }
+
+        stage('Build & Push: Frontend') {
+            steps {
+                dir('frontend') {
+                    dockerBuild(
+                        imageName: 'gblog-frontend',
+                        imageTag: "${params.FRONTEND_TAG}",
+                        registry: "${DOCKER_REPO}/",
+                        credentialsId: 'docker-creds'
+                    )
+                }
+            }
+        }
+
+        stage('Security: Trivy Scan') {
+            when { expression { return params.RUN_SECURITY_SCAN } }
+            steps {
+                parallel {
+                    stage('Trivy: Backend') {
+                        steps {
+                            trivyScan(
+                                imageName: "${DOCKER_REPO}/gblog-backend",
+                                imageTag: "${params.BACKEND_TAG}"
+                            )
+                        }
+                    }
+                    stage('Trivy: Frontend') {
+                        steps {
+                            trivyScan(
+                                imageName: "${DOCKER_REPO}/gblog-frontend",
+                                imageTag: "${params.FRONTEND_TAG}"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Deploy: ArgoCD Sync') {
+            steps {
+                argocdSync(
+                    appName: 'gblog-app'
+                )
+            }
+        }
     }
 
-    stage('GitOps Sync') {
-      steps {
-        sh "sed -i 's|repository:.*|repository: ${DOCKER_REGISTRY}${IMAGE_NAME}|' helm/gblog/values-prod.yaml"
-        sh "sed -i 's|tag:.*|tag: ${IMAGE_TAG}|' helm/gblog/values-prod.yaml"
-        sh "git add helm/gblog/values-prod.yaml"
-        sh "git commit -m 'chore: update image to ${DOCKER_REGISTRY}${IMAGE_NAME}:${IMAGE_TAG} [skip ci]' || true"
-        sh "git push origin main"
-        
-        argocdSync appName: APP_NAME
-      }
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo "Successfully deployed version ${params.BACKEND_TAG} to EKS!"
+        }
     }
-  }
-
-  post {
-    always {
-      echo "Build finished."
-    }
-  }
 }
