@@ -1,6 +1,7 @@
 image:
   repository: shriganeshdockerhub/gblog-backend
-  tag: "v1.5"
+  tag: "latest"
+  pullPolicy: Always
 
 replicaCount: 3
 
