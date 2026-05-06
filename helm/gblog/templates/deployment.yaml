@@ -28,7 +28,7 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/bin/sh", "-c"]
-          args: ["source /vault/secrets/database && java -jar /app/app.jar"]
+          args: [". /vault/secrets/database && java -jar /app/app.jar"]
           ports:
             - containerPort: 8080
           livenessProbe:
