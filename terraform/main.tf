@@ -195,7 +195,35 @@ resource "aws_instance" "ci" {
   subnet_id = aws_subnet.public_a.id
   vpc_security_group_ids = [aws_security_group.ci_sg.id]
   user_data_base64 = base64encode(file("${path.module}/scripts/bootstrap-aws-tools.sh"))
+  iam_instance_profile = aws_iam_instance_profile.ci_profile.name
+  root_block_device {
+    volume_size = 50
+    volume_type = "gp3"
+  }
   tags = { Name = "gblog-ci" }
+}
+
+# IAM Role for CI Instance
+resource "aws_iam_role" "ci_role" {
+  name = "gblog-ci-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ci_admin" {
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+  role       = aws_iam_role.ci_role.name
+}
+
+resource "aws_iam_instance_profile" "ci_profile" {
+  name = "gblog-ci-profile"
+  role = aws_iam_role.ci_role.name
 }
 
 # EKS Cluster
@@ -311,4 +339,19 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   skip_final_snapshot  = true
+}
+
+# IAM User for Jenkins
+resource "aws_iam_user" "jenkins_user" {
+  name = "jenkins-user"
+  tags = { Name = "jenkins-user" }
+}
+
+resource "aws_iam_access_key" "jenkins_key" {
+  user = aws_iam_user.jenkins_user.name
+}
+
+resource "aws_iam_user_policy_attachment" "jenkins_admin" {
+  user       = aws_iam_user.jenkins_user.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
