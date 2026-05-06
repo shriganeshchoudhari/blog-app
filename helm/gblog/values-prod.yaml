@@ -34,7 +34,7 @@ env:
   - name: LOG_LEVEL
     value: info
   - name: SPRING_DATASOURCE_URL
-    value: "jdbc:postgresql://REPLACE_WITH_RDS_ENDPOINT:5432/gblog"
+    value: "jdbc:postgresql://terraform-20260506154034323000000007.ckxmqu0is9ym.us-east-1.rds.amazonaws.com:5432/gblog"
 
 otel:
   enabled: true
