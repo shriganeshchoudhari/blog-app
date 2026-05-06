@@ -282,10 +282,20 @@ resource "aws_iam_role_policy_attachment" "ecr_policy" {
   role       = aws_iam_role.eks_nodes.name
 }
 
+resource "aws_iam_role_policy_attachment" "ebs_csi_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  role       = aws_iam_role.eks_nodes.name
+}
+
 resource "aws_launch_template" "eks_nodes" {
   name_prefix   = "gblog-eks-nodes-"
   instance_type = "m7i-flex.large"
   vpc_security_group_ids = [aws_security_group.eks_sg.id]
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
 
   tag_specifications {
     resource_type = "instance"
@@ -297,6 +307,11 @@ resource "aws_launch_template" "eks_nodes" {
   lifecycle {
     create_before_destroy = true
   }
+}
+
+resource "aws_eks_addon" "ebs_csi" {
+  cluster_name = aws_eks_cluster.main.name
+  addon_name   = "aws-ebs-csi-driver"
 }
 
 resource "aws_eks_node_group" "main" {
