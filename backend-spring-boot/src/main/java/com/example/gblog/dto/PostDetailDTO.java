@@ -35,7 +35,7 @@ public class PostDetailDTO {
     this.createdAt = p.getCreatedAt();
     this.updatedAt = p.getUpdatedAt();
     this.publishedAt = p.getPublishedAt();
-    this.author = p.getAuthor();
+    this.author = p.getUserId() != null ? p.getUserId().toString() : "unknown";
     this.comments = comments;
     this.tags = tags;
     this.categories = categories;

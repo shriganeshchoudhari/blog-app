@@ -24,13 +24,13 @@ public class DataLoader {
 
   @PostConstruct
   public void load() {
-    // Seed admin user if not exists
-    if (userRepository.findByUsername("admin").isEmpty()) {
+    User admin = userRepository.findByUsername("admin").orElse(null);
+    if (admin == null) {
       User u = new User();
       u.setUsername("admin");
       u.setPasswordHash(passwordEncoder.encode("password"));
       u.setRole("admin");
-      userRepository.save(u);
+      admin = userRepository.save(u);
     }
     // Seed a sample post if no posts exist
     if (postRepository.count() == 0) {
@@ -40,7 +40,7 @@ public class DataLoader {
       p.setStatus("published");
       p.setSlug("welcome-to-gblog-x");
       p.setSummary("Intro post");
-      p.setAuthor("admin");
+      p.setUserId(admin.getId());
       p.setCreatedAt(ZonedDateTime.now());
       p.setUpdatedAt(ZonedDateTime.now());
       p.setPublishedAt(ZonedDateTime.now());
