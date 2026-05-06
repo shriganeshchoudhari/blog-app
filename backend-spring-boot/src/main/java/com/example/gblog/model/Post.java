@@ -28,7 +28,6 @@ public class Post {
   private ZonedDateTime updatedAt = ZonedDateTime.now();
   @Column(name = "published_at")
   private ZonedDateTime publishedAt;
-  private String author;
 
   @ManyToMany
   @JoinTable(
@@ -67,8 +66,6 @@ public class Post {
   public void setUpdatedAt(ZonedDateTime updatedAt) { this.updatedAt = updatedAt; }
   public ZonedDateTime getPublishedAt() { return publishedAt; }
   public void setPublishedAt(ZonedDateTime publishedAt) { this.publishedAt = publishedAt; }
-  public String getAuthor() { return author; }
-  public void setAuthor(String author) { this.author = author; }
   public Set<Tag> getTags() { return tags; }
   public void setTags(Set<Tag> tags) { this.tags = tags; }
   public Set<Category> getCategories() { return categories; }
