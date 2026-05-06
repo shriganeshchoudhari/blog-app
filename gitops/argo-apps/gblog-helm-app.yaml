@@ -1,12 +1,12 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: gblog-helm
+  name: gblog-app
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://github.com/org/gblog-helm
+    repoURL: https://github.com/shriganeshchoudhari/blog-app.git
     targetRevision: HEAD
     path: helm/gblog
     helm:

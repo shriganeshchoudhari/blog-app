@@ -18,10 +18,10 @@ spec:
         vault.hashicorp.com/role: "blog-role"
         vault.hashicorp.com/agent-inject-secret-database: "secret/data/gblog/db"
         vault.hashicorp.com/agent-inject-template-database: |
-          {{- with secret "secret/data/gblog/db" -}}
-          export SPRING_DATASOURCE_USERNAME="{{ .Data.data.username }}"
-          export SPRING_DATASOURCE_PASSWORD="{{ .Data.data.password }}"
-          {{- end -}}
+          {{ `{{- with secret "secret/data/gblog/db" -}}` }}
+          export SPRING_DATASOURCE_USERNAME="{{ `{{ .Data.data.username }}` }}"
+          export SPRING_DATASOURCE_PASSWORD="{{ `{{ .Data.data.password }}` }}"
+          {{ `{{- end -}}` }}
     spec:
       containers:
         - name: backend
