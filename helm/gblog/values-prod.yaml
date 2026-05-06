@@ -1,8 +1,6 @@
 image:
-  repository: dockerhub/gblog-backend
-  tag: "v1.0.0"
-  pullSecrets:
-    - name: dockerhub-secret
+  repository: shriganeshdockerhub/gblog-backend
+  tag: "v1.1"
 
 replicaCount: 3
 
