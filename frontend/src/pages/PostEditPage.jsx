@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import api from '../services/api'
 
 export default function PostEditPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [post, setPost] = useState({ title: '', content: '', status: 'draft', summary: '' })
-  const [token] = useState(localStorage.getItem('token'))
 
   useEffect(() => {
-    fetch(`http://localhost:8080/api/v1/posts/${id}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
+    api.get(`/posts/${id}`)
+      .then(resp => {
+        const data = resp.data;
         // Handle both Post and PostDetailDTO formats
-        const p = data.post || data;
+        const p = data.post || data.data || data;
         setPost({
           title: p.title || '',
           content: p.content || '',
@@ -22,22 +20,17 @@ export default function PostEditPage() {
           summary: p.summary || ''
         })
       })
-  }, [id, token])
+      .catch(err => console.error('Failed to load post', err))
+  }, [id])
 
   async function handleSubmit(e) {
     e.preventDefault()
-    const resp = await fetch(`http://localhost:8080/api/v1/posts/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(post)
-    })
-    if (resp.ok) {
+    try {
+      await api.put(`/posts/${id}`, post)
       navigate('/posts')
-    } else {
-      alert('Failed to update post')
+    } catch (err) {
+      console.error(err)
+      alert('Failed to update post: ' + (err.response?.data?.message || 'Error'))
     }
   }
 

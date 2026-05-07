@@ -1,25 +1,19 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import api from '../services/api'
 
 export default function PostCreatePage() {
   const [post, setPost] = useState({ title: '', content: '', status: 'draft', summary: '' })
   const navigate = useNavigate()
-  const [token] = useState(localStorage.getItem('token'))
 
   async function handleSubmit(e) {
     e.preventDefault()
-    const resp = await fetch('http://localhost:8080/api/v1/posts', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(post)
-    })
-    if (resp.ok) {
+    try {
+      await api.post('/posts', post)
       navigate('/posts')
-    } else {
-      alert('Failed to create post')
+    } catch (err) {
+      console.error(err)
+      alert('Failed to create post: ' + (err.response?.data?.message || 'Error'))
     }
   }
 

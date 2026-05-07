@@ -3,6 +3,8 @@ package com.example.gblog.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -10,15 +12,14 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+@Component
 public class JwtUtil {
-  private String secret = System.getenv("JWT_SECRET");
+  @Value("${app.jwt.secret}")
+  private String secret;
   private long jwtExpirationMs = 900_000; // 15 minutes for access token
   private long refreshExpirationMs = 604800_000; // 7 days for refresh token
 
   public JwtUtil() {
-    if (secret == null || secret.isEmpty()) {
-      secret = "change-me-now-and-make-it-long-enough-for-hs256"; // HS256 needs at least 256 bits
-    }
   }
 
   private SecretKey getSigningKey() {

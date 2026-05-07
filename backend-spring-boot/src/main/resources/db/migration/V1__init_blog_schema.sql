@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE SCHEMA IF NOT EXISTS blog;
 
-CREATE TABLE blog.users (
+CREATE TABLE IF NOT EXISTS blog.users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   username TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE blog.users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE blog.posts (
+CREATE TABLE IF NOT EXISTS blog.posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES blog.users(id) ON DELETE SET NULL,
   title TEXT NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE blog.posts (
   featured_image_url TEXT
 );
 
-CREATE TABLE blog.comments (
+CREATE TABLE IF NOT EXISTS blog.comments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id UUID REFERENCES blog.posts(id) ON DELETE CASCADE,
   user_id UUID REFERENCES blog.users(id) ON DELETE SET NULL,
@@ -36,31 +36,31 @@ CREATE TABLE blog.comments (
   parent_id UUID NULL
 );
 
-CREATE TABLE blog.tags (
+CREATE TABLE IF NOT EXISTS blog.tags (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL
 );
 
-CREATE TABLE blog.categories (
+CREATE TABLE IF NOT EXISTS blog.categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL
 );
 
-CREATE TABLE blog.post_tags (
+CREATE TABLE IF NOT EXISTS blog.post_tags (
   post_id UUID REFERENCES blog.posts(id) ON DELETE CASCADE,
   tag_id UUID REFERENCES blog.tags(id) ON DELETE CASCADE,
   PRIMARY KEY (post_id, tag_id)
 );
 
-CREATE TABLE blog.post_categories (
+CREATE TABLE IF NOT EXISTS blog.post_categories (
   post_id UUID REFERENCES blog.posts(id) ON DELETE CASCADE,
   category_id UUID REFERENCES blog.categories(id) ON DELETE CASCADE,
   PRIMARY KEY (post_id, category_id)
 );
 
-CREATE TABLE blog.media (
+CREATE TABLE IF NOT EXISTS blog.media (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id UUID REFERENCES blog.posts(id) ON DELETE CASCADE,
   url TEXT NOT NULL,
@@ -68,7 +68,7 @@ CREATE TABLE blog.media (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE blog.analytics (
+CREATE TABLE IF NOT EXISTS blog.analytics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id UUID REFERENCES blog.posts(id) ON DELETE CASCADE,
   views BIGINT NOT NULL DEFAULT 0,

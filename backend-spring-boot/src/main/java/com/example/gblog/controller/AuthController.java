@@ -14,7 +14,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
-  private final JwtUtil jwtUtil = new JwtUtil();
+  @Autowired
+  private JwtUtil jwtUtil;
 
   @Autowired
   private UserRepository userRepository;
@@ -33,7 +34,7 @@ public class AuthController {
     String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
     String refreshToken = jwtUtil.generateRefreshToken(user.getUsername(), user.getRole());
     Map<String, Object> resp = new HashMap<>();
-    resp.put("token", token);
+    resp.put("accessToken", token);
     resp.put("refreshToken", refreshToken);
     Map<String, String> userInfo = new HashMap<>();
     userInfo.put("username", user.getUsername());
