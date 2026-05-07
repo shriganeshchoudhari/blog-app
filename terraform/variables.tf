@@ -18,3 +18,20 @@ variable "db_password" {
 variable "ci_instance_type" {
   default = "m7i-flex.large"
 }
+
+variable "jenkins_admin_password" {
+  default = "admin"
+}
+
+variable "sonar_token" {
+  default = "admin"
+}
+
+variable "docker_hub_user" {
+  default = "guest"
+}
+
+variable "docker_hub_token" {
+  default = "guest"
+  sensitive = true
+}

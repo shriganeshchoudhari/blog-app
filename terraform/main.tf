@@ -194,7 +194,14 @@ resource "aws_instance" "ci" {
   key_name      = aws_key_pair.deployer.key_name
   subnet_id = aws_subnet.public_a.id
   vpc_security_group_ids = [aws_security_group.ci_sg.id]
-  user_data_base64 = base64encode(file("${path.module}/scripts/bootstrap-aws-tools.sh"))
+  user_data_base64 = base64encode(templatefile("${path.module}/scripts/bootstrap-aws-tools.sh", {
+    ADMIN_PASSWORD        = var.jenkins_admin_password
+    SONAR_TOKEN           = var.sonar_token
+    DOCKER_HUB_USER       = var.docker_hub_user
+    DOCKER_HUB_TOKEN      = var.docker_hub_token
+    AWS_ACCESS_KEY_ID     = aws_iam_access_key.jenkins_key.id
+    AWS_SECRET_ACCESS_KEY = aws_iam_access_key.jenkins_key.secret
+  }))
   iam_instance_profile = aws_iam_instance_profile.ci_profile.name
   root_block_device {
     volume_size = 50

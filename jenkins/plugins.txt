@@ -1,0 +1,12 @@
+configuration-as-code:1930.v2d0658f800c1
+git:5.7.0
+workflow-aggregator:602.v85e06ec0dd97
+docker-workflow:580.vc0c340686b_54
+sonar:2.18.2
+aws-credentials:247.v865d3d9cda_f0
+pipeline-aws:1.95.ve3607062400a_
+slack:741.v981d305cc860
+blueocean:1.27.16
+amazon-ecr:209.v67b_d6756209b_
+kubernetes:4349.v87f340f1a_759
+dark-theme:721.ve589d891b_5e1
