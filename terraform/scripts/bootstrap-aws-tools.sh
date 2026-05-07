@@ -46,6 +46,7 @@ rm argocd-linux-amd64
 # 7. Jenkins Configuration as Code (JCasC) Setup
 sudo mkdir -p /var/lib/jenkins/init.groovy.d
 sudo mkdir -p /var/lib/jenkins/casc_configs
+sudo mkdir -p /var/lib/jenkins/plugins
 
 # Install Jenkins Plugin Manager
 JAR_URL="https://github.com/jenkinsci/plugin-installation-manager-tool/releases/latest/download/jenkins-plugin-manager.jar"
@@ -67,8 +68,8 @@ kubernetes:4349.v87f340f1a_759
 dark-theme:721.ve589d891b_5e1
 EOF
 
-# Install Plugins
-sudo java -jar /opt/jenkins-plugin-manager.jar --war /usr/share/java/jenkins.war --plugin-file /var/lib/jenkins/plugins.txt --plugin-download-directory /var/lib/jenkins/plugins
+# Install Plugins (Using full path to java)
+sudo /usr/bin/java -jar /opt/jenkins-plugin-manager.jar --war /usr/share/java/jenkins.war --plugin-file /var/lib/jenkins/plugins.txt --plugin-download-directory /var/lib/jenkins/plugins || true
 
 # Create jenkins.yaml
 sudo tee /var/lib/jenkins/jenkins.yaml <<EOF
@@ -135,18 +136,22 @@ EOF
 sudo usermod -aG docker jenkins
 sudo chown -R jenkins:jenkins /var/lib/jenkins/
 
-# Configure JCasC Environment Variable
+# Configure JCasC Environment Variable and JAVA_HOME
 sudo mkdir -p /etc/systemd/system/jenkins.service.d
-echo "[Service]
-Environment=\"CASC_JENKINS_CONFIG=/var/lib/jenkins/jenkins.yaml\"
-Environment=\"ADMIN_PASSWORD=${ADMIN_PASSWORD}\"
-Environment=\"SONAR_TOKEN=${SONAR_TOKEN}\"
-Environment=\"DOCKER_HUB_USER=${DOCKER_HUB_USER}\"
-Environment=\"DOCKER_HUB_TOKEN=${DOCKER_HUB_TOKEN}\"
-Environment=\"AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}\"
-Environment=\"AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}\"" | sudo tee /etc/systemd/system/jenkins.service.d/override.conf
+sudo tee /etc/systemd/system/jenkins.service.d/override.conf <<EOF
+[Service]
+Environment="CASC_JENKINS_CONFIG=/var/lib/jenkins/jenkins.yaml"
+Environment="ADMIN_PASSWORD=${ADMIN_PASSWORD}"
+Environment="SONAR_TOKEN=${SONAR_TOKEN}"
+Environment="DOCKER_HUB_USER=${DOCKER_HUB_USER}"
+Environment="DOCKER_HUB_TOKEN=${DOCKER_HUB_TOKEN}"
+Environment="AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
+Environment="AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"
+Environment="JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64"
+EOF
 
 sudo systemctl daemon-reload
+sudo systemctl enable jenkins
 sudo systemctl restart jenkins
 
 # Start SonarQube container
