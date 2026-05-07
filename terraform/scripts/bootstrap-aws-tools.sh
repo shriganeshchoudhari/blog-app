@@ -48,9 +48,9 @@ sudo mkdir -p /var/lib/jenkins/init.groovy.d
 sudo mkdir -p /var/lib/jenkins/casc_configs
 sudo mkdir -p /var/lib/jenkins/plugins
 
-# Install Jenkins Plugin Manager
-JAR_URL="https://github.com/jenkinsci/plugin-installation-manager-tool/releases/latest/download/jenkins-plugin-manager.jar"
-sudo wget -q $JAR_URL -O /opt/jenkins-plugin-manager.jar
+# Install Jenkins Plugin Manager (Fixed URL)
+JAR_URL="https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.13.2/jenkins-plugin-manager-2.13.2.jar"
+sudo curl -L $JAR_URL -o /opt/jenkins-plugin-manager.jar
 
 # Create plugins.txt
 sudo tee /var/lib/jenkins/plugins.txt <<EOF
@@ -68,7 +68,7 @@ kubernetes:4349.v87f340f1a_759
 dark-theme:721.ve589d891b_5e1
 EOF
 
-# Install Plugins (Using full path to java)
+# Install Plugins
 sudo /usr/bin/java -jar /opt/jenkins-plugin-manager.jar --war /usr/share/java/jenkins.war --plugin-file /var/lib/jenkins/plugins.txt --plugin-download-directory /var/lib/jenkins/plugins || true
 
 # Create jenkins.yaml
@@ -136,18 +136,24 @@ EOF
 sudo usermod -aG docker jenkins
 sudo chown -R jenkins:jenkins /var/lib/jenkins/
 
-# Configure JCasC Environment Variable and JAVA_HOME
+# Configure Environment
+sudo tee /etc/default/jenkins <<EOF
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+JENKINS_JAVA_CMD=/usr/bin/java
+CASC_JENKINS_CONFIG=/var/lib/jenkins/jenkins.yaml
+ADMIN_PASSWORD=${ADMIN_PASSWORD}
+SONAR_TOKEN=${SONAR_TOKEN}
+DOCKER_HUB_USER=${DOCKER_HUB_USER}
+DOCKER_HUB_TOKEN=${DOCKER_HUB_TOKEN}
+AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+EOF
+
+# Systemd Override
 sudo mkdir -p /etc/systemd/system/jenkins.service.d
 sudo tee /etc/systemd/system/jenkins.service.d/override.conf <<EOF
 [Service]
-Environment="CASC_JENKINS_CONFIG=/var/lib/jenkins/jenkins.yaml"
-Environment="ADMIN_PASSWORD=${ADMIN_PASSWORD}"
-Environment="SONAR_TOKEN=${SONAR_TOKEN}"
-Environment="DOCKER_HUB_USER=${DOCKER_HUB_USER}"
-Environment="DOCKER_HUB_TOKEN=${DOCKER_HUB_TOKEN}"
-Environment="AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
-Environment="AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"
-Environment="JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64"
+EnvironmentFile=/etc/default/jenkins
 EOF
 
 sudo systemctl daemon-reload
