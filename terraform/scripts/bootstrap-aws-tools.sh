@@ -139,12 +139,12 @@ sudo chown -R jenkins:jenkins /var/lib/jenkins/
 sudo mkdir -p /etc/systemd/system/jenkins.service.d
 echo "[Service]
 Environment=\"CASC_JENKINS_CONFIG=/var/lib/jenkins/jenkins.yaml\"
-Environment=\"ADMIN_PASSWORD=$ADMIN_PASSWORD\"
-Environment=\"SONAR_TOKEN=$SONAR_TOKEN\"
-Environment=\"DOCKER_HUB_USER=$DOCKER_HUB_USER\"
-Environment=\"DOCKER_HUB_TOKEN=$DOCKER_HUB_TOKEN\"
-Environment=\"AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID\"
-Environment=\"AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY\"" | sudo tee /etc/systemd/system/jenkins.service.d/override.conf
+Environment=\"ADMIN_PASSWORD=${ADMIN_PASSWORD}\"
+Environment=\"SONAR_TOKEN=${SONAR_TOKEN}\"
+Environment=\"DOCKER_HUB_USER=${DOCKER_HUB_USER}\"
+Environment=\"DOCKER_HUB_TOKEN=${DOCKER_HUB_TOKEN}\"
+Environment=\"AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}\"
+Environment=\"AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}\"" | sudo tee /etc/systemd/system/jenkins.service.d/override.conf
 
 sudo systemctl daemon-reload
 sudo systemctl restart jenkins
