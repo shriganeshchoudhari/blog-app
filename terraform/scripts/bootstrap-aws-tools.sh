@@ -9,25 +9,37 @@ sudo apt install -y docker.io wget curl gnupg2 software-properties-common apt-tr
 sudo systemctl enable docker --now
 sudo usermod -aG docker ubuntu
 
-# 3. Jenkins Installation (User Confirmed Working Logic)
-sudo mkdir -p /etc/apt/keyrings
-sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
-echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+# 3. Install Tools (Java 21, Docker, etc.)
+sudo apt update
+sudo apt install -y openjdk-21-jdk maven docker.io curl wget unzip git
 
-# 4. Trivy Security (Binary Keyring Fix)
+# 4. Install Jenkins (User's preferred method)
+sudo mkdir -p /etc/apt/keyrings
+sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian/jenkins.io-2023.key || \
+sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian/jenkins.io-2026.key
+
+echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] \
+  https://pkg.jenkins.io/debian binary/" | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+sudo apt update
+sudo apt install -y jenkins
+
+# 5. Trivy Security (Binary Keyring Fix)
 wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /etc/apt/keyrings/trivy.gpg
 echo "deb [signed-by=/etc/apt/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
 
-# 5. Install Software
+# 6. Install Software
 sudo apt update -y
-# Using native Ubuntu 21 JDK for stability
-sudo apt install -y openjdk-21-jdk maven jenkins trivy
+sudo apt install -y trivy
 
-# 6. CLI Tools
-# kubectl
+# 7. Other Tools (Kubectl, Helm, etc.)
+# Kubectl
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-chmod +x kubectl
-sudo mv kubectl /usr/local/bin/
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+rm kubectl
 
 # AWS CLI v2
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -44,11 +56,10 @@ sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
 rm argocd-linux-amd64
 
 # 7. Jenkins Configuration as Code (JCasC) Setup
-sudo mkdir -p /var/lib/jenkins/init.groovy.d
-sudo mkdir -p /var/lib/jenkins/casc_configs
 sudo mkdir -p /var/lib/jenkins/plugins
+sudo mkdir -p /var/lib/jenkins/init.groovy.d
 
-# Install Jenkins Plugin Manager (Fixed URL)
+# Install Jenkins Plugin Manager (Fixed reliable URL)
 JAR_URL="https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.13.2/jenkins-plugin-manager-2.13.2.jar"
 sudo curl -L $JAR_URL -o /opt/jenkins-plugin-manager.jar
 
@@ -136,7 +147,7 @@ EOF
 sudo usermod -aG docker jenkins
 sudo chown -R jenkins:jenkins /var/lib/jenkins/
 
-# Configure Environment
+# Configure Environment (Fixing Java Detection)
 sudo tee /etc/default/jenkins <<EOF
 JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 JENKINS_JAVA_CMD=/usr/bin/java
@@ -154,6 +165,9 @@ sudo mkdir -p /etc/systemd/system/jenkins.service.d
 sudo tee /etc/systemd/system/jenkins.service.d/override.conf <<EOF
 [Service]
 EnvironmentFile=/etc/default/jenkins
+# Force Java Path
+ExecStart=
+ExecStart=/usr/bin/java -Djava.awt.headless=true -jar /usr/share/java/jenkins.war --webroot=/var/cache/jenkins/war --httpPort=8080
 EOF
 
 sudo systemctl daemon-reload
