@@ -225,12 +225,12 @@ EOF
 sudo mkdir -p /etc/systemd/system/jenkins.service.d
 sudo tee /etc/systemd/system/jenkins.service.d/override.conf <<EOF
 [Service]
-EnvironmentFile=/etc/default/jenkins
+Environment="JAVA_OPTS=-Djava.awt.headless=true -Djenkins.install.runSetupWizard=false"
 EOF
 
 sudo systemctl daemon-reload
 sudo systemctl enable jenkins
-sudo systemctl restart jenkins
+sudo systemctl restart jenkins || (sudo systemctl status jenkins > /var/lib/jenkins/jenkins_fail.log 2>&1 && sudo journalctl -u jenkins -n 50 >> /var/lib/jenkins/jenkins_fail.log 2>&1)
 
 # Start SonarQube container
 sudo docker run -d --name sonarqube -p 9000:9000 sonarqube:lts
