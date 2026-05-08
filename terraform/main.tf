@@ -375,12 +375,8 @@ resource "aws_iam_role_policy_attachment" "eks_node_policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
-  for_each = toset([
-    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
-  ])
-  policy_arn = each.value
-  role       = aws_iam_role.ci_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+  role       = aws_iam_role.eks_nodes.name
 }
 
 resource "aws_iam_role_policy_attachment" "ecr_policy" {
