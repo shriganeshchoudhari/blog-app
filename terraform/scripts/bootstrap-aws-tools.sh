@@ -139,6 +139,11 @@ credentials:
               id: "docker-hub"
               username: "$${DOCKER_HUB_USER}"
               password: "$${DOCKER_HUB_TOKEN}"
+          - usernamePassword:
+              scope: GLOBAL
+              id: "github-creds"
+              username: "$${GITHUB_USER}"
+              password: "$${GITHUB_TOKEN}"
 EOF
 
 # 8. Final Configuration
@@ -173,7 +178,7 @@ sudo tee /etc/systemd/system/jenkins.service.d/override.conf <<EOF
 EnvironmentFile=/etc/default/jenkins
 # Force Java Path
 ExecStart=
-ExecStart=/usr/bin/java -Djava.awt.headless=true -jar /usr/share/java/jenkins.war --webroot=/var/cache/jenkins/war --httpPort=8080
+ExecStart=/usr/bin/java -Djava.awt.headless=true -Djenkins.install.runSetupWizard=false -jar /usr/share/java/jenkins.war --webroot=/var/cache/jenkins/war --httpPort=8080
 EOF
 
 sudo systemctl daemon-reload
