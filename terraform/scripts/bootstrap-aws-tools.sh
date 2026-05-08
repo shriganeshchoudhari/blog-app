@@ -16,8 +16,6 @@ sudo apt install -y openjdk-21-jdk maven docker.io curl wget unzip git
 # 4. Install Jenkins (User's preferred method)
 sudo mkdir -p /etc/apt/keyrings
 sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc \
-  https://pkg.jenkins.io/debian/jenkins.io-2023.key || \
-sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc \
   https://pkg.jenkins.io/debian/jenkins.io-2026.key
 
 echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] \
