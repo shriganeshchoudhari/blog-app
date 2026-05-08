@@ -68,6 +68,10 @@ def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
 strategy.setAllowAnonymousRead(false)
 instance.setAuthorizationStrategy(strategy)
 
+if (!instance.isInstallWizardComplete()) {
+    instance.setInstallWizardComplete(true)
+}
+
 instance.save()
 EOF
 
@@ -95,6 +99,11 @@ kubernetes
 dark-theme
 job-dsl
 EOF
+
+# Force Wizard to be complete via filesystem
+sudo mkdir -p /var/lib/jenkins
+sudo echo "2.563" | sudo tee /var/lib/jenkins/jenkins.install.InstallUtil.lastExecVersion
+sudo echo "2.563" | sudo tee /var/lib/jenkins/jenkins.install.UpgradeWizard.state
 
 # Install Plugins
 sudo /usr/bin/java -jar /opt/jenkins-plugin-manager.jar --war /usr/share/java/jenkins.war --plugin-file /var/lib/jenkins/plugins.txt --plugin-download-directory /var/lib/jenkins/plugins || true
