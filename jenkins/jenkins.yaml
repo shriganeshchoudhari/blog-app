@@ -62,22 +62,3 @@ credentials:
               id: "github-creds"
               username: "${GITHUB_USER}"
               password: "${GITHUB_TOKEN}"
-
-jobs:
-  - script: >
-      pipelineJob('G-Blog-Pipeline') {
-        definition {
-          cpsScm {
-            scm {
-              git {
-                remote {
-                  url('https://github.com/shriganeshchoudhari/blog-app.git')
-                  credentials('github-creds')
-                }
-                branches('*/main')
-              }
-            }
-            scriptPath('Jenkinsfile')
-          }
-        }
-      }

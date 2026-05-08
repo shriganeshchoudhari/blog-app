@@ -81,23 +81,43 @@ sudo curl -L $JAR_URL -o /opt/jenkins-plugin-manager.jar
 
 # Create plugins.txt
 sudo tee /var/lib/jenkins/plugins.txt <<EOF
-configuration-as-code:1930.v2d0658f800c1
-git:5.7.0
-workflow-aggregator:602.v85e06ec0dd97
-docker-workflow:580.vc0c340686b_54
-sonar:2.18.2
-aws-credentials:247.v865d3d9cda_f0
-pipeline-aws:1.95.ve3607062400a_
-slack:741.v981d305cc860
-blueocean:1.27.16
-amazon-ecr:209.v67b_d6756209b_
-kubernetes:4349.v87f340f1a_759
-dark-theme:721.ve589d891b_5e1
-job-dsl:1.90
+configuration-as-code
+git
+workflow-aggregator
+docker-workflow
+sonar
+aws-credentials
+pipeline-aws
+slack
+blueocean
+amazon-ecr
+kubernetes
+dark-theme
+job-dsl
 EOF
 
 # Install Plugins
 sudo /usr/bin/java -jar /opt/jenkins-plugin-manager.jar --war /usr/share/java/jenkins.war --plugin-file /var/lib/jenkins/plugins.txt --plugin-download-directory /var/lib/jenkins/plugins || true
+
+# 9. Jenkins Groovy Job Creation
+sudo tee /var/lib/jenkins/init.groovy.d/create-pipeline.groovy <<EOF
+import jenkins.model.*
+import hudson.plugins.git.*
+import org.jenkinsci.plugins.workflow.job.WorkflowJob
+import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition
+
+def jobName = "G-Blog-Pipeline"
+def instance = Jenkins.getInstance()
+
+if (instance.getItem(jobName) == null) {
+    def job = instance.createProject(WorkflowJob, jobName)
+    def gitRepo = "https://github.com/${GITHUB_USER}/blog-app.git"
+    def scm = new GitSCM(gitRepo)
+    scm.branches = [new BranchSpec("*/main")]
+    job.definition = new CpsScmFlowDefinition(scm, "Jenkinsfile")
+    job.save()
+}
+EOF
 
 # Create jenkins.yaml
 sudo tee /var/lib/jenkins/jenkins.yaml <<EOF
