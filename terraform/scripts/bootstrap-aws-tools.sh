@@ -93,6 +93,7 @@ blueocean:1.27.16
 amazon-ecr:209.v67b_d6756209b_
 kubernetes:4349.v87f340f1a_759
 dark-theme:721.ve589d891b_5e1
+job-dsl:1.90
 EOF
 
 # Install Plugins
