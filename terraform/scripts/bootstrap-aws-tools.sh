@@ -206,6 +206,8 @@ sudo -u jenkins ssh-keyscan github.com >> /var/lib/jenkins/.ssh/known_hosts
 sudo tee /etc/default/jenkins <<EOF
 JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 JENKINS_JAVA_CMD=/usr/bin/java
+JAVA_OPTS="-Djava.awt.headless=true -Djenkins.install.runSetupWizard=false"
+JENKINS_JAVA_OPTS="-Djava.awt.headless=true -Djenkins.install.runSetupWizard=false"
 CASC_JENKINS_CONFIG=/var/lib/jenkins/jenkins.yaml
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
 SONAR_TOKEN=${SONAR_TOKEN}
@@ -224,7 +226,6 @@ sudo mkdir -p /etc/systemd/system/jenkins.service.d
 sudo tee /etc/systemd/system/jenkins.service.d/override.conf <<EOF
 [Service]
 EnvironmentFile=/etc/default/jenkins
-Environment="JAVA_OPTS=-Djava.awt.headless=true -Djenkins.install.runSetupWizard=false"
 EOF
 
 sudo systemctl daemon-reload
