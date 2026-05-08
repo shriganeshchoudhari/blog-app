@@ -1,17 +1,11 @@
-@Library('Shared@master') _
-
 pipeline {
     agent any
-    
-    parameters {
-        string(name: 'BACKEND_TAG', defaultValue: 'latest', description: 'Tag for Backend Image')
-        string(name: 'FRONTEND_TAG', defaultValue: 'latest', description: 'Tag for Frontend Image')
-        booleanParam(name: 'RUN_SECURITY_SCAN', defaultValue: true, description: 'Run Trivy and SonarQube')
-    }
 
     environment {
-        DOCKER_REPO = 'shriganeshdockerhub' // Your DockerHub username
-        SONAR_SERVER = 'Sonar'              // Must match Manage Jenkins > System
+        // These will be injected from Jenkins/Terraform
+        ECR_REPO = "${env.ECR_URL ?: '239013465815.dkr.ecr.us-east-1.amazonaws.com/gblog-app'}"
+        AWS_REGION = "us-east-1"
+        SCANNER_HOME = tool 'SonarScanner'
     }
 
     stages {
@@ -21,69 +15,50 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Maven Build') {
             steps {
-                dir('backend-spring-boot') {
-                    sh 'mvn clean package -DskipTests'
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh "${SCANNER_HOME}/bin/sonar-scanner -Dsonar.projectKey=gblog-app -Dsonar.java.binaries=target/classes"
                 }
             }
         }
 
-        stage('Security: SonarQube Scan') {
-            when { expression { return params.RUN_SECURITY_SCAN } }
+        stage('Docker Build & Push') {
             steps {
-                sonarScan(
-                    projectKey: 'gblog-backend',
-                    dir: 'backend-spring-boot'
-                )
-            }
-        }
-
-        stage('Build & Push: Backend') {
-            steps {
-                dir('backend-spring-boot') {
-                    dockerBuild(
-                        imageName: 'gblog-backend',
-                        imageTag: "${params.BACKEND_TAG}",
-                        registry: "${DOCKER_REPO}/",
-                        credentialsId: 'docker-creds'
-                    )
+                script {
+                    // Authenticate with ECR
+                    sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO}"
+                    
+                    // Build the image
+                    sh "docker build -t ${ECR_REPO}:${GIT_COMMIT} ."
+                    
+                    // Push the image
+                    sh "docker push ${ECR_REPO}:${GIT_COMMIT}"
                 }
             }
         }
 
-        stage('Build & Push: Frontend') {
+        stage('Update Manifest (GitOps)') {
             steps {
-                dir('frontend') {
-                    dockerBuild(
-                        imageName: 'gblog-frontend',
-                        imageTag: "${params.FRONTEND_TAG}",
-                        registry: "${DOCKER_REPO}/",
-                        credentialsId: 'docker-creds'
-                    )
+                script {
+                    // Update the image tag in deployment.yaml
+                    sh "sed -i 's|image: .*|image: ${ECR_REPO}:${GIT_COMMIT}|g' k8s/deployment.yaml"
+                    
+                    // Commit and push back to repo
+                    withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+                        sh "git config user.email 'jenkins@shriganesh.me'"
+                        sh "git config user.name 'Jenkins CI'"
+                        sh "git add k8s/deployment.yaml"
+                        sh "git commit -m 'chore: update image to ${GIT_COMMIT} [skip ci]'"
+                        sh "git push https://${GIT_TOKEN}@github.com/shriganeshchoudhari/blog-app.git HEAD:main"
+                    }
                 }
-            }
-        }
-
-        stage('Security: Trivy Scan') {
-            when { expression { return params.RUN_SECURITY_SCAN } }
-            steps {
-                trivyScan(
-                    imageName: "${DOCKER_REPO}/gblog-backend",
-                    imageTag: "${params.BACKEND_TAG}"
-                )
-                trivyScan(
-                    imageName: "${DOCKER_REPO}/gblog-frontend",
-                    imageTag: "${params.FRONTEND_TAG}"
-                )
-            }
-        }
-
-        stage('Deploy: ArgoCD Sync') {
-            steps {
-                argocdSync(
-                    appName: 'gblog-app'
-                )
             }
         }
     }
@@ -91,9 +66,6 @@ pipeline {
     post {
         always {
             cleanWs()
-        }
-        success {
-            echo "Successfully deployed version ${params.BACKEND_TAG} to EKS!"
         }
     }
 }

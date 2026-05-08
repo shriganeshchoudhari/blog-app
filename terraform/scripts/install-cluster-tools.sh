@@ -9,6 +9,12 @@ echo "Installing ArgoCD..."
 kubectl create namespace argocd || true
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
+echo "Configuring ArgoCD Webhook Secret..."
+source /etc/default/jenkins || true
+if [ -n "${WEBHOOK_SECRET:-}" ]; then
+  kubectl patch secret argocd-secret -n argocd -p "{\"data\": {\"webhook.github.secret\": \"$(echo -n $WEBHOOK_SECRET | base64)\"}}"
+fi
+
 echo "Installing Argo Rollouts..."
 kubectl create namespace argo-rollouts || true
 kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
@@ -42,5 +48,15 @@ echo "Installing OpenTelemetry Operator (for AI Insights)..."
 helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
 helm repo update
 helm upgrade --install otel-operator open-telemetry/opentelemetry-operator --namespace observability --create-namespace --set manager.collectorImage.repository=otel/opentelemetry-collector-contrib
+
+echo "Waiting for ArgoCD server to be ready..."
+kubectl wait --for=condition=available deployment/argocd-server -n argocd --timeout=300s
+
+echo "Retrieving ArgoCD initial admin password..."
+ARGOCD_PWD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
+echo "ArgoCD initial password: $ARGOCD_PWD"
+
+echo "Applying G-Blog ArgoCD Application..."
+kubectl apply -f ../gitops/argo-apps/gblog-helm-app.yaml
 
 echo "Cluster tools installation complete."

@@ -1,6 +1,34 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
+    github = {
+      source  = "integrations/github"
+      version = "~> 6.0"
+    }
+  }
+}
+
 provider "aws" {
   region = var.aws_region
 }
+
+provider "github" {
+  token = var.github_token
+  owner = var.github_owner
+}
+
+provider "random" {}
 
 resource "aws_vpc" "gblog_vpc" {
   cidr_block = "10.0.0.0/16"
@@ -44,6 +72,69 @@ resource "aws_subnet" "private_b" {
   cidr_block        = "10.0.4.0/24"
   availability_zone = "${var.aws_region}b"
   tags = { Name = "gblog-private-b" }
+}
+
+# ---------------------------------------------------------------------------------------------------------------------
+# ECR REPOSITORY
+# ---------------------------------------------------------------------------------------------------------------------
+resource "aws_ecr_repository" "blog_app" {
+  name                 = "gblog-app"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_lifecycle_policy" "blog_app_policy" {
+  repository = aws_ecr_repository.blog_app.name
+
+  policy = <<EOF
+{
+    "rules": [
+        {
+            "rulePriority": 1,
+            "description": "Keep last 10 images",
+            "selection": {
+                "tagStatus": "any",
+                "countType": "imageCountMoreThan",
+                "countNumber": 10
+            },
+            "action": {
+                "type": "expire"
+            }
+        }
+    ]
+}
+EOF
+}
+
+resource "random_password" "webhook_secret" {
+  length  = 32
+  special = false
+}
+
+# ---------------------------------------------------------------------------------------------------------------------
+# GITHUB WEBHOOK FOR ARGOCD
+# ---------------------------------------------------------------------------------------------------------------------
+resource "github_repository_webhook" "argocd_webhook" {
+  repository = var.github_repository
+
+  configuration {
+    url          = "https://argocd.shriganesh.me/api/webhook" 
+    content_type = "json"
+    secret       = random_password.webhook_secret.result
+    insecure_ssl = true
+  }
+
+  active = true
+
+  events = ["push"]
+}
+
+output "ecr_repository_url" {
+  value = aws_ecr_repository.blog_app.repository_url
 }
 
 resource "aws_route_table" "public_rt" {
@@ -201,6 +292,10 @@ resource "aws_instance" "ci" {
     DOCKER_HUB_TOKEN      = var.docker_hub_token
     AWS_ACCESS_KEY_ID     = aws_iam_access_key.jenkins_key.id
     AWS_SECRET_ACCESS_KEY = aws_iam_access_key.jenkins_key.secret
+    GITHUB_USER           = var.github_owner
+    GITHUB_TOKEN          = var.github_token
+    WEBHOOK_SECRET        = random_password.webhook_secret.result
+    ECR_URL               = aws_ecr_repository.blog_app.repository_url
   }))
   iam_instance_profile = aws_iam_instance_profile.ci_profile.name
   root_block_device {
@@ -280,8 +375,12 @@ resource "aws_iam_role_policy_attachment" "eks_node_policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.eks_nodes.name
+  for_each = toset([
+    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
+  ])
+  policy_arn = each.value
+  role       = aws_iam_role.ci_role.name
 }
 
 resource "aws_iam_role_policy_attachment" "ecr_policy" {

@@ -57,3 +57,8 @@ credentials:
               id: "docker-hub"
               username: "${DOCKER_HUB_USER}"
               password: "${DOCKER_HUB_TOKEN}"
+          - usernamePassword:
+              scope: GLOBAL
+              id: "github-creds"
+              username: "${GITHUB_USER}"
+              password: "${GITHUB_TOKEN}"

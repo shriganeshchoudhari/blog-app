@@ -145,6 +145,10 @@ EOF
 sudo usermod -aG docker jenkins
 sudo chown -R jenkins:jenkins /var/lib/jenkins/
 
+# Handle GitHub SSH Verification
+sudo -u jenkins mkdir -p /var/lib/jenkins/.ssh
+sudo -u jenkins ssh-keyscan github.com >> /var/lib/jenkins/.ssh/known_hosts
+
 # Configure Environment (Fixing Java Detection)
 sudo tee /etc/default/jenkins <<EOF
 JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
@@ -156,6 +160,10 @@ DOCKER_HUB_USER=${DOCKER_HUB_USER}
 DOCKER_HUB_TOKEN=${DOCKER_HUB_TOKEN}
 AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
 AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+GITHUB_USER=${GITHUB_USER}
+GITHUB_TOKEN=${GITHUB_TOKEN}
+WEBHOOK_SECRET=${WEBHOOK_SECRET}
+ECR_URL=${ECR_URL}
 EOF
 
 # Systemd Override
