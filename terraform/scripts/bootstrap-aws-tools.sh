@@ -224,9 +224,7 @@ sudo mkdir -p /etc/systemd/system/jenkins.service.d
 sudo tee /etc/systemd/system/jenkins.service.d/override.conf <<EOF
 [Service]
 EnvironmentFile=/etc/default/jenkins
-# Force Java Path
-ExecStart=
-ExecStart=/usr/bin/java -Djava.awt.headless=true -Djenkins.install.runSetupWizard=false -jar /usr/share/java/jenkins.war --webroot=/var/cache/jenkins/war --httpPort=8080
+Environment="JAVA_OPTS=-Djava.awt.headless=true -Djenkins.install.runSetupWizard=false"
 EOF
 
 sudo systemctl daemon-reload
