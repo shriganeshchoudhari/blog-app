@@ -53,7 +53,24 @@ curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/lat
 sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
 rm argocd-linux-amd64
 
-# 7. Jenkins Configuration as Code (JCasC) Setup
+# 7. Jenkins Groovy Init for Admin
+sudo tee /var/lib/jenkins/init.groovy.d/basic-security.groovy <<EOF
+import jenkins.model.*
+import hudson.security.*
+
+def instance = Jenkins.getInstance()
+def hudsonRealm = new HudsonPrivateSecurityRealm(false)
+hudsonRealm.createAccount("admin", "${ADMIN_PASSWORD}")
+instance.setSecurityRealm(hudsonRealm)
+
+def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+strategy.setAllowAnonymousRead(false)
+instance.setAuthorizationStrategy(strategy)
+
+instance.save()
+EOF
+
+# 8. Jenkins Configuration as Code (JCasC) Setup
 sudo mkdir -p /var/lib/jenkins/plugins
 sudo mkdir -p /var/lib/jenkins/init.groovy.d
 
