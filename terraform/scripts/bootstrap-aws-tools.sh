@@ -54,6 +54,7 @@ sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
 rm argocd-linux-amd64
 
 # 7. Jenkins Groovy Init for Admin
+sudo mkdir -p /var/lib/jenkins/init.groovy.d
 sudo tee /var/lib/jenkins/init.groovy.d/basic-security.groovy <<EOF
 import jenkins.model.*
 import hudson.security.*
