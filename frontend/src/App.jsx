@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import PostsPage from './pages/PostsPage';
 import PostCreatePage from './pages/PostCreatePage';
 import PostEditPage from './pages/PostEditPage';
+import PostDetailPage from './pages/PostDetailPage';
 import LoginPage from './pages/LoginPage';
 import ProtectedLayout from './pages/ProtectedLayout';
 import { ToastContainer } from 'react-toastify';
@@ -17,6 +18,7 @@ function App() {
           <Route element={<ProtectedLayout />}>
             <Route path="/" element={<PostsPage />} />
             <Route path="/posts" element={<PostsPage />} />
+            <Route path="/posts/:id" element={<PostDetailPage />} />
             <Route path="/posts/create" element={<PostCreatePage />} />
             <Route path="/posts/:id/edit" element={<PostEditPage />} />
           </Route>

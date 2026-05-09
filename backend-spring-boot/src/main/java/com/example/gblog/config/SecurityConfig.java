@@ -31,6 +31,7 @@ public class SecurityConfig {
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/v1/auth/**").permitAll()
+            .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/posts/**").permitAll()
             .requestMatchers("/actuator/health/**").permitAll()
             .requestMatchers("/actuator/**").hasRole("ADMIN")
             .anyRequest().authenticated()

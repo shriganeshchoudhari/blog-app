@@ -50,7 +50,7 @@ public class PostController {
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<?> get(@PathVariable UUID id) {
+  public ResponseEntity<?> get(@PathVariable("id") UUID id) {
     java.util.Optional<Post> postOpt = postRepository.findById(id);
     if (postOpt.isEmpty())
       return ResponseEntity.notFound().build();
@@ -115,7 +115,7 @@ public class PostController {
 
   @PreAuthorize("hasAnyRole('ADMIN','EDITOR')")
   @PutMapping("/{id}")
-  public ResponseEntity<Post> update(@PathVariable UUID id, @RequestBody Post p) {
+  public ResponseEntity<Post> update(@PathVariable("id") UUID id, @RequestBody Post p) {
     return postRepository.findById(id).map(existing -> {
       existing.setTitle(p.getTitle());
       existing.setContent(p.getContent());
@@ -157,7 +157,7 @@ public class PostController {
 
   @PreAuthorize("hasAnyRole('ADMIN','EDITOR')")
   @DeleteMapping("/{id}")
-  public ResponseEntity<Void> delete(@PathVariable UUID id) {
+  public ResponseEntity<Void> delete(@PathVariable("id") UUID id) {
     if (postRepository.existsById(id)) {
       postRepository.deleteById(id);
       return ResponseEntity.noContent().build();

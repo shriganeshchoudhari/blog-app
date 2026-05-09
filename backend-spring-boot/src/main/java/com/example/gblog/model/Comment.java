@@ -14,6 +14,9 @@ public class Comment {
   private UUID postId;
   @Column(name = "user_id")
   private UUID userId;
+  
+  private String author;
+  
   @Column(columnDefinition = "TEXT")
   private String content;
   private ZonedDateTime createdAt = ZonedDateTime.now();
@@ -27,6 +30,8 @@ public class Comment {
   public void setPostId(UUID postId) { this.postId = postId; }
   public UUID getUserId() { return userId; }
   public void setUserId(UUID userId) { this.userId = userId; }
+  public String getAuthor() { return author; }
+  public void setAuthor(String author) { this.author = author; }
   public String getContent() { return content; }
   public void setContent(String content) { this.content = content; }
   public ZonedDateTime getCreatedAt() { return createdAt; }

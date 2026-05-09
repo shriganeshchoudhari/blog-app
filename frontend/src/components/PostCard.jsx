@@ -28,21 +28,21 @@ const PostCard = ({ post, onDelete }) => {
         </p>
         
         <div className="flex flex-wrap gap-2 mb-4">
-          {post.category && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {post.category}
+          {post.categories && post.categories.map((cat, index) => (
+            <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              {cat.name}
             </span>
-          )}
+          ))}
           {post.tags && post.tags.map((tag, index) => (
             <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-              {tag}
+              {tag.name}
             </span>
           ))}
         </div>
         
         <div className="flex items-center justify-between text-sm text-gray-500">
-          <span>Published: {formatDate(post.publishedAt)}</span>
-          {post.author && <span>By {post.author.name}</span>}
+          <span>Published: {formatDate(post.publishedAt || post.createdAt)}</span>
+          {post.author && <span>By {post.author}</span>}
         </div>
       </div>
       

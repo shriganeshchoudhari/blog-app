@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "categories", schema = "blog")
@@ -24,6 +25,7 @@ public class Category {
   @Column(nullable = false, unique = true)
   private String slug;
 
+  @JsonIgnore
   @ManyToMany(mappedBy = "categories")
   private Set<Post> posts = new HashSet<>();
 
