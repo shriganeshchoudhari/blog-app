@@ -2,24 +2,27 @@ image:
   repository: shriganeshdockerhub/gblog-backend
   tag: "latest"
   pullPolicy: Always
+  pullSecrets:
+    - name: dockerhub-secret
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    kubernetes.io/ingress.class: nginx
+  hosts:
+    - host: blog.example.com
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
 
 replicaCount: 3
 
 service:
   type: ClusterIP
   port: 80
-
-ingress:
-  enabled: true
-  className: nginx
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-  hosts:
-    - host: gblog.example.com
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
+  targetPort: 8081
 
 resources:
   limits:
@@ -29,13 +32,57 @@ resources:
     cpu: "500m"
     memory: "512Mi"
 
+livenessProbe:
+  httpGet:
+    path: /actuator/health/liveness
+    port: 8081
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /actuator/health/readiness
+    port: 8081
+  initialDelaySeconds: 15
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
 env:
   - name: NODE_ENV
     value: production
   - name: LOG_LEVEL
     value: info
   - name: SPRING_DATASOURCE_URL
-    value: "jdbc:postgresql://terraform-20260506154034323000000007.ckxmqu0is9ym.us-east-1.rds.amazonaws.com:5432/gblog"
+    valueFrom:
+      secretKeyRef:
+        name: gblog-db-credentials
+        key: url
+  - name: SPRING_DATASOURCE_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: gblog-db-credentials
+        key: username
+  - name: SPRING_DATASOURCE_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: gblog-db-credentials
+        key: password
+  - name: JWT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: gblog-jwt-secret
+        key: secret
+
+config:
+  # ConfigMap data can be injected here if needed
+  key: value
+
+tls:
+  enabled: true
+  secretName: gblog-prod-tls
 
 otel:
   enabled: true
@@ -43,3 +90,6 @@ otel:
 
 rollout:
   enabled: false
+
+imagePullSecrets:
+  - name: dockerhub-secret

@@ -17,7 +17,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.GrantedAuthority;
 
 @RestController
 @RequestMapping("/api/v1/posts")
@@ -31,26 +30,18 @@ public class PostController {
   @Autowired
   private CategoryRepository categoryRepository;
   @Autowired
-  private io.micrometer.core.instrument.Counter postCreationCounter;
+  private com.example.gblog.repository.UserRepository userRepository;
+
+  private final io.micrometer.core.instrument.Counter postCreationCounter;
+
+  public PostController(io.micrometer.core.instrument.MeterRegistry registry) {
+    this.postCreationCounter = io.micrometer.core.instrument.Counter.builder("gblog.posts.created")
+        .description("Number of posts created")
+        .register(registry);
+  }
 
   private java.util.List<Comment> fetchComments(UUID postId) {
     return commentRepository.findByPostId(postId);
-  }
-
-  private boolean hasRole(String... roles) {
-    if (roles == null || roles.length == 0)
-      return false;
-    org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    if (auth == null)
-      return false;
-    for (GrantedAuthority ga : auth.getAuthorities()) {
-      String a = ga.getAuthority(); // e.g. ROLE_ADMIN
-      for (String r : roles) {
-        if (a.equals("ROLE_" + r.toUpperCase()))
-          return true;
-      }
-    }
-    return false;
   }
 
   @GetMapping
@@ -74,8 +65,9 @@ public class PostController {
   @PreAuthorize("hasAnyRole('ADMIN','AUTHOR','EDITOR')")
   @PostMapping
   public ResponseEntity<Post> create(@RequestBody Post p) {
-    if (!hasRole("admin", "author", "editor")) {
-      return ResponseEntity.status(403).build();
+    org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    if (auth != null && auth.isAuthenticated()) {
+      userRepository.findByUsername(auth.getName()).ifPresent(user -> p.setUserId(user.getId()));
     }
     if (p.getSlug() == null || p.getSlug().isEmpty()) {
       p.setSlug((p.getTitle() != null ? p.getTitle() : "post").toLowerCase().replaceAll("[^a-z0-9]+", "-"));
@@ -84,11 +76,15 @@ public class PostController {
     if (p.getTags() != null) {
       java.util.Set<Tag> managedTags = new java.util.HashSet<>();
       for (Tag t : p.getTags()) {
-        Tag existing = tagRepository.findBySlug(t.getSlug()).orElse(null);
+        String slug = t.getSlug();
+        if (slug == null && t.getName() != null) {
+          slug = t.getName().toLowerCase().replaceAll("[^a-z0-9]+", "-");
+        }
+        Tag existing = tagRepository.findBySlug(slug).orElse(null);
         if (existing == null) {
           Tag nt = new Tag();
           nt.setName(t.getName());
-          nt.setSlug(t.getSlug());
+          nt.setSlug(slug);
           existing = tagRepository.save(nt);
         }
         managedTags.add(existing);
@@ -98,11 +94,15 @@ public class PostController {
     if (p.getCategories() != null) {
       java.util.Set<Category> managedCats = new java.util.HashSet<>();
       for (Category c : p.getCategories()) {
-        Category existing = categoryRepository.findBySlug(c.getSlug()).orElse(null);
+        String slug = c.getSlug();
+        if (slug == null && c.getName() != null) {
+          slug = c.getName().toLowerCase().replaceAll("[^a-z0-9]+", "-");
+        }
+        Category existing = categoryRepository.findBySlug(slug).orElse(null);
         if (existing == null) {
           Category nc = new Category();
           nc.setName(c.getName());
-          nc.setSlug(c.getSlug());
+          nc.setSlug(slug);
           existing = categoryRepository.save(nc);
         }
         managedCats.add(existing);
@@ -116,9 +116,6 @@ public class PostController {
   @PreAuthorize("hasAnyRole('ADMIN','EDITOR')")
   @PutMapping("/{id}")
   public ResponseEntity<Post> update(@PathVariable UUID id, @RequestBody Post p) {
-    if (!hasRole("admin", "editor")) {
-      return ResponseEntity.status(403).build();
-    }
     return postRepository.findById(id).map(existing -> {
       existing.setTitle(p.getTitle());
       existing.setContent(p.getContent());
@@ -161,9 +158,6 @@ public class PostController {
   @PreAuthorize("hasAnyRole('ADMIN','EDITOR')")
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> delete(@PathVariable UUID id) {
-    if (!hasRole("admin", "editor")) {
-      return ResponseEntity.status(403).build();
-    }
     if (postRepository.existsById(id)) {
       postRepository.deleteById(id);
       return ResponseEntity.noContent().build();

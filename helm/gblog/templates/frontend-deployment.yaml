@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gblog.fullname" . }}-frontend
+  labels:
+    app: {{ include "gblog.name" . }}-frontend
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "gblog.name" . }}-frontend
+  template:
+    metadata:
+      labels:
+        app: {{ include "gblog.name" . }}-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          ports:
+            - containerPort: 80
+          resources:
+            {{- if .Values.resources }}
+            {{ toYaml .Values.resources | nindent 12 }}
+            {{- else }}
+            {}
+            {{- end }}

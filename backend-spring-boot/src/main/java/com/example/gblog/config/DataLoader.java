@@ -30,6 +30,7 @@ public class DataLoader {
       u.setUsername("admin");
       u.setPasswordHash(passwordEncoder.encode("password"));
       u.setRole("admin");
+      u.setEmail("admin@example.com");
       admin = userRepository.save(u);
     }
     // Seed a sample post if no posts exist

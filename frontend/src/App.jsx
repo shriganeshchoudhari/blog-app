@@ -1,23 +1,30 @@
-import React from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import LoginPage from './pages/LoginPage.jsx'
-import PostsPage from './pages/PostsPage.jsx'
-import ProtectedLayout from './pages/ProtectedLayout.jsx'
-import PostCreatePage from './pages/PostCreatePage.jsx'
-import PostEditPage from './pages/PostEditPage.jsx'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import PostsPage from './pages/PostsPage';
+import PostCreatePage from './pages/PostCreatePage';
+import PostEditPage from './pages/PostEditPage';
+import LoginPage from './pages/LoginPage';
+import ProtectedLayout from './pages/ProtectedLayout';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-export default function App() {
+function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route element={<ProtectedLayout />}> 
-          <Route path="/posts" element={<PostsPage />} />
-          <Route path="/posts/create" element={<PostCreatePage />} />
-          <Route path="/posts/edit/:id" element={<PostEditPage />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/login" />} />
-      </Routes>
-    </BrowserRouter>
-  )
+    <>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          
+          <Route element={<ProtectedLayout />}>
+            <Route path="/" element={<PostsPage />} />
+            <Route path="/posts" element={<PostsPage />} />
+            <Route path="/posts/create" element={<PostCreatePage />} />
+            <Route path="/posts/:id/edit" element={<PostEditPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+      <ToastContainer position="bottom-right" autoClose={3000} />
+    </>
+  );
 }
+
+export default App;

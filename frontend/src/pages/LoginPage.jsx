@@ -1,68 +1,107 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import api from '../services/api'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { authApi } from '../services/api';
 
-export default function LoginPage() {
-  const [username, setUsername] = useState('admin')
-  const [password, setPassword] = useState('password')
-  const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
+const LoginPage = () => {
+  const { t } = useTranslation();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  async function login(e) {
-    e.preventDefault()
-    setLoading(true)
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError('');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
     try {
-      const resp = await api.post('/auth/login', { username, password })
-      // Backend returns accessToken and refreshToken
-      localStorage.setItem('accessToken', resp.data.accessToken)
-      localStorage.setItem('refreshToken', resp.data.refreshToken)
-      localStorage.setItem('username', username)
-      navigate('/posts')
+      const response = await authApi.login(formData);
+
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        navigate('/posts');
+      }
     } catch (err) {
-      console.error(err)
-      alert('Login failed: ' + (err.response?.data?.message || 'Unauthorized'))
+      setError(err.response?.data?.message || t('login_failed') || 'Login failed. Please try again.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-      <div className="glass-card" style={{ width: '100%', maxWidth: '400px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '2rem', background: 'linear-gradient(45deg, #fff, #aaa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            G-Blog X
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            {t('login_title')}
           </h2>
-          <p style={{ color: 'rgba(255,255,255,0.6)' }}>Premium Microservices Blog</p>
         </div>
-        
-        <form onSubmit={login}>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)' }}>Username</label>
-            <input 
-              value={username} 
-              onChange={e => setUsername(e.target.value)} 
-              placeholder="admin" 
-              required 
-              style={{ width: '100%' }}
-            />
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="rounded-md shadow-sm -space-y-px">
+            <div>
+              <label htmlFor="email" className="sr-only">
+                {t('email_label')}
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                className="appearance-none rounded-none rounded-t-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder={t('email_label')}
+                value={formData.email}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="sr-only">
+                {t('password_label')}
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                className="appearance-none rounded-none rounded-b-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder={t('password_label')}
+                value={formData.password}
+                onChange={handleChange}
+              />
+            </div>
           </div>
-          <div style={{ marginBottom: '2rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)' }}>Password</label>
-            <input 
-              type="password" 
-              value={password} 
-              onChange={e => setPassword(e.target.value)} 
-              placeholder="password" 
-              required 
-              style={{ width: '100%' }}
-            />
+
+          {error && (
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? t('signing_in') : t('signin_button')}
+            </button>
           </div>
-          <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={loading}>
-            {loading ? 'Authenticating...' : 'Login'}
-          </button>
         </form>
       </div>
     </div>
-  )
-}
+  );
+};
+
+export default LoginPage;

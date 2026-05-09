@@ -2,15 +2,41 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ include "gblog.fullname" . }}-ingress
+  labels:
+    app: {{ include "gblog.name" . }}
+  {{- if .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+  {{- end }}
 spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.tls.enabled }}
+  tls:
+    - hosts:
+        {{- range .Values.ingress.hosts }}
+        - {{ .host | quote }}
+        {{- end }}
+      secretName: {{ include "gblog.fullname" . }}-tls
+  {{- end }}
   rules:
-    - host: blog.example.com
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
       http:
         paths:
-          - path: /
-            pathType: Prefix
+          - path: /api
+            pathType: ImplementationSpecific
             backend:
               service:
-                name: {{ include "gblog.fullname" . }}
+                name: {{ include "gblog.fullname" $ }}
                 port:
-                  number: {{ .Values.service.port }}
+                  number: {{ $.Values.backend.service.port }}
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "gblog.fullname" $ }}-frontend
+                port:
+                  number: {{ $.Values.frontend.service.port }}
+    {{- end }}

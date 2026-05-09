@@ -12,6 +12,12 @@ public class Category {
   @GeneratedValue(strategy = GenerationType.AUTO)
   private UUID id;
 
+  public Category() {}
+  public Category(String name) {
+    this.name = name;
+    this.slug = name.toLowerCase().replaceAll("[^a-z0-9]+", "-");
+  }
+
   @Column(nullable = false, unique = true)
   private String name;
 

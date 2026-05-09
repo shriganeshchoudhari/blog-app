@@ -5,7 +5,7 @@ metadata:
   labels:
     app: {{ include "gblog.name" . }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.backend.replicaCount }}
   selector:
     matchLabels:
       app: {{ include "gblog.name" . }}
@@ -14,35 +14,56 @@ spec:
       labels:
         app: {{ include "gblog.name" . }}
       annotations:
+        {{- if .Values.vault.enabled }}
         vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: "blog-role"
-        vault.hashicorp.com/agent-inject-secret-database: "secret/data/gblog/db"
+        vault.hashicorp.com/role: {{ .Values.vault.role | quote }}
+        vault.hashicorp.com/agent-inject-secret-database: {{ .Values.vault.secretPath | quote }}
         vault.hashicorp.com/agent-inject-template-database: |
-          {{ `{{- with secret "secret/data/gblog/db" -}}` }}
+          {{ `{{- with secret ` }}{{ .Values.vault.secretPath | quote }}{{ ` -}}` }}
           export SPRING_DATASOURCE_USERNAME="{{ `{{ .Data.data.username }}` }}"
           export SPRING_DATASOURCE_PASSWORD="{{ `{{ .Data.data.password }}` }}"
           {{ `{{- end -}}` }}
+        {{- end }}
     spec:
+      {{- if .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- range .Values.image.pullSecrets }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      serviceAccountName: {{ include "gblog.fullname" . }}-sa
       containers:
         - name: backend
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
           command: ["/bin/sh", "-c"]
+          {{- if .Values.vault.enabled }}
           args: [". /vault/secrets/database && java -jar /app/app.jar"]
+          {{- else }}
+          args: ["java -jar /app/app.jar"]
+          {{- end }}
           ports:
-            - containerPort: 8080
+            - containerPort: 8081
           livenessProbe:
+            {{- if .Values.livenessProbe }}
+            {{ toYaml .Values.livenessProbe | nindent 12 }}
+            {{- else }}
             httpGet:
               path: /actuator/health/liveness
-              port: 8080
+              port: 8081
             initialDelaySeconds: 30
             periodSeconds: 10
+            {{- end }}
           readinessProbe:
+            {{- if .Values.readinessProbe }}
+            {{ toYaml .Values.readinessProbe | nindent 12 }}
+            {{- else }}
             httpGet:
               path: /actuator/health/readiness
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            {{- end }}
           env: {{- toYaml .Values.env | nindent 12 }}
           resources:
             {{- if .Values.resources }}

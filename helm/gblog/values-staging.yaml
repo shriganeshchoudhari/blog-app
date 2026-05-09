@@ -1,11 +1,29 @@
 image:
+  repository: shriganeshdockerhub/gblog-backend
   tag: "staging"
+  pullPolicy: IfNotPresent
 
 replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8081
+
+resources:
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+  requests:
+    cpu: "250m"
+    memory: "256Mi"
 
 env:
   - name: NODE_ENV
     value: staging
+  - name: LOG_LEVEL
+    value: debug
 
 otel:
+  enabled: true
   endpoint: "http://otel-collector-staging:4317"

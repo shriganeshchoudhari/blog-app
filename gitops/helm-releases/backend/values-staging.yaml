@@ -1,2 +1,61 @@
-tag: staging
-image: dockerhub/gblog-backend:staging
+image:
+  repository: shriganeshdockerhub/gblog-backend
+  tag: "staging"
+  pullPolicy: Always
+  pullSecrets:
+    - name: dockerhub-secret
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8081
+
+resources:
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+  requests:
+    cpu: "250m"
+    memory: "256Mi"
+
+livenessProbe:
+  httpGet:
+    path: /actuator/health/liveness
+    port: 8081
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /actuator/health/readiness
+    port: 8081
+  initialDelaySeconds: 15
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+env:
+  - name: NODE_ENV
+    value: staging
+  - name: LOG_LEVEL
+    value: debug
+
+config:
+  key: value
+
+tls:
+  enabled: false
+
+otel:
+  enabled: true
+  endpoint: "http://otel-collector-staging:4317"
+
+rollout:
+  enabled: false
+
+imagePullSecrets:
+  - name: dockerhub-secret

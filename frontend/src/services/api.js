@@ -1,18 +1,20 @@
 import axios from 'axios';
 
+const API_BASE_URL = '/api';
+
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor for API calls
+// Request interceptor for JWT token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('token');
     if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -21,41 +23,38 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for API calls
+// Response interceptor for error handling
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  async (error) => {
-    const originalRequest = error.config;
-    
-    // If the error is 401 and we haven't tried to refresh yet
-    if (error.response.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      const refreshToken = localStorage.getItem('refreshToken');
-      
-      if (refreshToken) {
-        try {
-          const resp = await axios.post('/api/v1/auth/refresh', { refreshToken });
-          const { accessToken, refreshToken: newRefreshToken } = resp.data;
-          
-          localStorage.setItem('accessToken', accessToken);
-          localStorage.setItem('refreshToken', newRefreshToken);
-          
-          // Update the original request with the new token
-          originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
-          return api(originalRequest);
-        } catch (refreshError) {
-          // If refresh fails, log out
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          window.location.href = '/login';
-          return Promise.reject(refreshError);
-        }
-      }
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
+
+export const authApi = {
+  login: (credentials) => api.post('/v1/auth/login', credentials),
+  register: (userData) => api.post('/v1/auth/register', userData),
+  verifyToken: () => api.get('/v1/auth/verify'),
+};
+
+export const postApi = {
+  getAllPosts: () => api.get('/v1/posts'),
+  getPostById: (id) => api.get(`/v1/posts/${id}`),
+  createPost: (post) => api.post('/v1/posts', post),
+  updatePost: (id, post) => api.put(`/v1/posts/${id}`, post),
+  deletePost: (id) => api.delete(`/v1/posts/${id}`),
+  getPostsByCategory: (categoryId) => api.get(`/v1/posts/category/${categoryId}`),
+  getPostsByTag: (tagId) => api.get(`/v1/posts/tag/${tagId}`),
+};
+
+export const commentApi = {
+  getCommentsByPost: (postId) => api.get(`/v1/posts/${postId}/comments`),
+  createComment: (postId, comment) => api.post(`/v1/posts/${postId}/comments`, comment),
+  deleteComment: (postId, commentId) => api.delete(`/v1/posts/${postId}/comments/${commentId}`),
+};
 
 export default api;

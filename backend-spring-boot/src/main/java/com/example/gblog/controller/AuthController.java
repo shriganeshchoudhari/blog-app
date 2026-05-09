@@ -25,16 +25,16 @@ public class AuthController {
 
   @PostMapping("/login")
   public ResponseEntity<?> login(@RequestBody Map<String, String> payload) {
-    String username = payload.get("username");
+    String email = payload.get("email");
     String password = payload.get("password");
-    User user = userRepository.findByUsername(username).orElse(null);
+    User user = userRepository.findByEmail(email).orElse(null);
     if (user == null || !passwordEncoder.matches(password, user.getPasswordHash())) {
       return ResponseEntity.status(401).body(Map.of("error", "invalid credentials"));
     }
     String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
     String refreshToken = jwtUtil.generateRefreshToken(user.getUsername(), user.getRole());
     Map<String, Object> resp = new HashMap<>();
-    resp.put("accessToken", token);
+    resp.put("token", token);
     resp.put("refreshToken", refreshToken);
     Map<String, String> userInfo = new HashMap<>();
     userInfo.put("username", user.getUsername());
@@ -53,5 +53,23 @@ public class AuthController {
     String role = jwtUtil.extractRole(refreshToken);
     String newToken = jwtUtil.generateToken(username, role);
     return ResponseEntity.ok(Map.of("token", newToken));
+  }
+
+  @GetMapping("/verify")
+  public ResponseEntity<?> verify() {
+    org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+    if (auth == null || !auth.isAuthenticated() || auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) {
+      return ResponseEntity.status(401).build();
+    }
+    String username = auth.getName();
+    User user = userRepository.findByUsername(username).orElse(null);
+    if (user == null) {
+      return ResponseEntity.status(401).build();
+    }
+    Map<String, String> userInfo = new HashMap<>();
+    userInfo.put("username", user.getUsername());
+    userInfo.put("role", user.getRole());
+    userInfo.put("email", user.getEmail());
+    return ResponseEntity.ok(Map.of("user", userInfo));
   }
 }

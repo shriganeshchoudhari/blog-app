@@ -3,7 +3,9 @@ pipeline {
 
     environment {
         // These will be injected from Jenkins/Terraform
-        ECR_REPO = "${env.ECR_URL ?: '239013465815.dkr.ecr.us-east-1.amazonaws.com/gblog-app'}"
+        ECR_REGISTRY = "239013465815.dkr.ecr.us-east-1.amazonaws.com"
+        BACKEND_REPO = "${ECR_REGISTRY}/gblog-backend"
+        FRONTEND_REPO = "${ECR_REGISTRY}/gblog-frontend"
         AWS_REGION = "us-east-1"
         SCANNER_HOME = tool 'SonarScanner'
     }
@@ -15,16 +17,30 @@ pipeline {
             }
         }
 
-        stage('Maven Build') {
+        stage('Backend Build & Test') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                dir('backend-spring-boot') {
+                    sh 'mvn clean package'
+                }
+            }
+        }
+
+        stage('Frontend Build & Test') {
+            steps {
+                dir('frontend') {
+                    sh 'npm install'
+                    sh 'npm run build'
+                    // sh 'npm run test' // Uncomment when tests are stable
+                }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    sh "${SCANNER_HOME}/bin/sonar-scanner -Dsonar.projectKey=gblog-app -Dsonar.java.binaries=target/classes"
+                    dir('backend-spring-boot') {
+                        sh "${SCANNER_HOME}/bin/sonar-scanner -Dsonar.projectKey=gblog-backend -Dsonar.java.binaries=target/classes"
+                    }
                 }
             }
         }
@@ -33,29 +49,35 @@ pipeline {
             steps {
                 script {
                     // Authenticate with ECR
-                    sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO}"
+                    sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
                     
-                    // Build the image
-                    sh "docker build -t ${ECR_REPO}:${GIT_COMMIT} ."
+                    // Build & Push Backend
+                    sh "docker build -t ${BACKEND_REPO}:${GIT_COMMIT} -t ${BACKEND_REPO}:latest backend-spring-boot"
+                    sh "docker push ${BACKEND_REPO}:${GIT_COMMIT}"
+                    sh "docker push ${BACKEND_REPO}:latest"
                     
-                    // Push the image
-                    sh "docker push ${ECR_REPO}:${GIT_COMMIT}"
+                    // Build & Push Frontend
+                    sh "docker build -t ${FRONTEND_REPO}:${GIT_COMMIT} -t ${FRONTEND_REPO}:latest frontend"
+                    sh "docker push ${FRONTEND_REPO}:${GIT_COMMIT}"
+                    sh "docker push ${FRONTEND_REPO}:latest"
                 }
             }
         }
 
-        stage('Update Manifest (GitOps)') {
+        stage('Update Helm Manifest (GitOps)') {
             steps {
                 script {
-                    // Update the image tag in deployment.yaml
-                    sh "sed -i 's|image: .*|image: ${ECR_REPO}:${GIT_COMMIT}|g' k8s/deployment.yaml"
+                    // Update the image tag in values-prod.yaml
+                    // We assume the Helm chart is structured to use the tag for both or separate ones.
+                    // For simplicity, we update the main tag.
+                    sh "sed -i 's|tag: .*|tag: \"${GIT_COMMIT}\"|g' helm/gblog/values-prod.yaml"
                     
                     // Commit and push back to repo
                     withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
                         sh "git config user.email 'jenkins@shriganesh.me'"
                         sh "git config user.name 'Jenkins CI'"
-                        sh "git add k8s/deployment.yaml"
-                        sh "git commit -m 'chore: update image to ${GIT_COMMIT} [skip ci]'"
+                        sh "git add helm/gblog/values-prod.yaml"
+                        sh "git commit -m 'chore: update deployment tag to ${GIT_COMMIT} [skip ci]'"
                         sh "git push https://${GIT_TOKEN}@github.com/shriganeshchoudhari/blog-app.git HEAD:main"
                     }
                 }
