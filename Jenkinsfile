@@ -8,6 +8,7 @@ pipeline {
         FRONTEND_REPO = "${ECR_REGISTRY}/gblog-frontend"
         AWS_REGION = "us-east-1"
         SCANNER_HOME = tool 'SonarScanner'
+        PATH = "/var/lib/jenkins/tools/node/bin:${env.PATH}"
     }
 
     stages {

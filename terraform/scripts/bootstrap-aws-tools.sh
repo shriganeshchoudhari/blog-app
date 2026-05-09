@@ -108,6 +108,14 @@ sudo echo "2.563" | sudo tee /var/lib/jenkins/jenkins.install.UpgradeWizard.stat
 # Install Plugins
 sudo /usr/bin/java -jar /opt/jenkins-plugin-manager.jar --war /usr/share/java/jenkins.war --plugin-file /var/lib/jenkins/plugins.txt --plugin-download-directory /var/lib/jenkins/plugins || true
 
+# Install Node.js for frontend builds
+sudo mkdir -p /var/lib/jenkins/tools
+sudo curl -fsSL https://nodejs.org/dist/v20.18.0/node-v20.18.0-linux-x64.tar.xz -o /tmp/node.tar.xz
+sudo tar xf /tmp/node.tar.xz -C /var/lib/jenkins/tools
+sudo rm /tmp/node.tar.xz
+sudo ln -sf node-v20.18.0-linux-x64 /var/lib/jenkins/tools/node
+sudo chown -R jenkins:jenkins /var/lib/jenkins/tools
+
 # 9. Jenkins Groovy Job Creation
 sudo tee /var/lib/jenkins/init.groovy.d/create-pipeline.groovy <<EOF
 import jenkins.model.*
