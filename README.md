@@ -100,7 +100,8 @@ G-Blog X follows **Shift-Left Security** principles. All code is scanned before 
 ---
 
 ## 👨‍💻 Author
-**Shriganesh Choudhari**
+**Shriganesh Choudhari** 
+
 
 ---
 *G-Blog X - Built for scale, secured for production.*
