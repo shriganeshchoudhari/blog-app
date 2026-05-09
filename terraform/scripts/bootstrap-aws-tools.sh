@@ -122,7 +122,7 @@ if (instance.getItem(jobName) == null) {
     def job = instance.createProject(WorkflowJob, jobName)
     def gitRepo = "https://github.com/${GITHUB_USER}/blog-app.git"
     def scm = new GitSCM(gitRepo)
-    scm.branches = [new BranchSpec("*/main")]
+    scm.branches = [new BranchSpec("*/master")]
     job.definition = new CpsScmFlowDefinition(scm, "Jenkinsfile")
     job.save()
 }
