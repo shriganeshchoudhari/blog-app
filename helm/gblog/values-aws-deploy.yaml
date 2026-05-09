@@ -3,7 +3,7 @@ backend:
   image:
     repository: 239013465815.dkr.ecr.us-east-1.amazonaws.com/gblog-backend
     tag: "latest"
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   service:
     type: ClusterIP
     port: 8081
@@ -13,7 +13,7 @@ frontend:
   image:
     repository: 239013465815.dkr.ecr.us-east-1.amazonaws.com/gblog-frontend
     tag: "latest"
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   service:
     type: ClusterIP
     port: 80

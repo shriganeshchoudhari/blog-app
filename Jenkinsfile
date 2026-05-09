@@ -76,7 +76,7 @@ pipeline {
                         sh "git config user.name 'Jenkins CI'"
                         sh "git add helm/gblog/values-aws-deploy.yaml"
                         sh "git commit -m 'chore: update deployment tag to ${GIT_COMMIT} [skip ci]'"
-                        sh "git push https://${GIT_TOKEN}@github.com/shriganeshchoudhari/blog-app.git HEAD:main"
+                        sh "git push https://${GIT_TOKEN}@github.com/shriganeshchoudhari/blog-app.git HEAD:master"
                     }
                 }
             }
