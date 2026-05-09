@@ -11,7 +11,7 @@ spec:
     path: helm/gblog
     helm:
       valueFiles:
-        - values-prod.yaml
+        - values-aws-deploy.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: default
@@ -19,3 +19,6 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true

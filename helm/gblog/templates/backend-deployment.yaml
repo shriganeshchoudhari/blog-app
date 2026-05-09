@@ -25,23 +25,22 @@ spec:
           {{ `{{- end -}}` }}
         {{- end }}
     spec:
-      {{- if .Values.image.pullSecrets }}
+      {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- range .Values.image.pullSecrets }}
-        - name: {{ . }}
+        {{- range .Values.imagePullSecrets }}
+        - name: {{ .name }}
         {{- end }}
       {{- end }}
       serviceAccountName: {{ include "gblog.fullname" . }}-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
       containers:
         - name: backend
           image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
           imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
-          command: ["/bin/sh", "-c"]
-          {{- if .Values.vault.enabled }}
-          args: [". /vault/secrets/database && java -jar /app/app.jar"]
-          {{- else }}
-          args: ["java -jar /app/app.jar"]
-          {{- end }}
           ports:
             - containerPort: 8081
           livenessProbe:
@@ -71,9 +70,26 @@ spec:
             {{- else }}
             {}
             {{- end }}
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
         - name: otel-collector
           image: otel/opentelemetry-collector:latest
           env:
             - name: OTEL_COLLECTOR_OTLP_ENDPOINT
               value: {{ .Values.otel.endpoint | quote }}
-      volumes: []
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+      volumes:
+        - name: logs
+          emptyDir: {}

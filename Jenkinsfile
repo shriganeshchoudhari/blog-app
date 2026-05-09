@@ -67,16 +67,14 @@ pipeline {
         stage('Update Helm Manifest (GitOps)') {
             steps {
                 script {
-                    // Update the image tag in values-prod.yaml
-                    // We assume the Helm chart is structured to use the tag for both or separate ones.
-                    // For simplicity, we update the main tag.
-                    sh "sed -i 's|tag: .*|tag: \"${GIT_COMMIT}\"|g' helm/gblog/values-prod.yaml"
+                    // Update image tags in values-aws-deploy.yaml
+                    sh "sed -i 's|tag: .*|tag: \"${GIT_COMMIT}\"|g' helm/gblog/values-aws-deploy.yaml"
                     
                     // Commit and push back to repo
                     withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
                         sh "git config user.email 'jenkins@shriganesh.me'"
                         sh "git config user.name 'Jenkins CI'"
-                        sh "git add helm/gblog/values-prod.yaml"
+                        sh "git add helm/gblog/values-aws-deploy.yaml"
                         sh "git commit -m 'chore: update deployment tag to ${GIT_COMMIT} [skip ci]'"
                         sh "git push https://${GIT_TOKEN}@github.com/shriganeshchoudhari/blog-app.git HEAD:main"
                     }

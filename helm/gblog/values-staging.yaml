@@ -1,14 +1,22 @@
-image:
-  repository: shriganeshdockerhub/gblog-backend
-  tag: "staging"
-  pullPolicy: IfNotPresent
+backend:
+  replicaCount: 1
+  image:
+    repository: shriganeshdockerhub/gblog-backend
+    tag: "staging"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8081
 
-replicaCount: 1
-
-service:
-  type: ClusterIP
-  port: 80
-  targetPort: 8081
+frontend:
+  replicaCount: 1
+  image:
+    repository: shriganeshdockerhub/gblog-frontend
+    tag: "staging"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
 
 resources:
   limits:
@@ -27,3 +35,6 @@ env:
 otel:
   enabled: true
   endpoint: "http://otel-collector-staging:4317"
+
+vault:
+  enabled: false

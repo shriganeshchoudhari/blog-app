@@ -15,48 +15,17 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              name: ingress-nginx
-        - podSelector:
-            matchLabels:
-              app: nginx-ingress
-      ports:
-        - protocol: TCP
-          port: 8081
-    - from:
-        - podSelector:
-            matchLabels:
-              app: otel-collector
+              kubernetes.io/metadata.name: ingress-nginx
       ports:
         - protocol: TCP
           port: 8081
   egress:
     - to:
-        - namespaceSelector: {}
-          podSelector:
-            matchLabels:
-              app: postgres
+        - ipBlock:
+            cidr: 0.0.0.0/0
       ports:
         - protocol: TCP
           port: 5432
-    - to:
-        - namespaceSelector: {}
-          podSelector:
-            matchLabels:
-              app: otel-collector
-      ports:
-        - protocol: TCP
-          port: 4317
-    - to:
-        - namespaceSelector: {}
-          podSelector:
-            matchLabels:
-              app: vault
-      ports:
-        - protocol: TCP
-          port: 8200
-    - to:
-        - namespaceSelector: {}
-      ports:
         - protocol: TCP
           port: 443
     - to:

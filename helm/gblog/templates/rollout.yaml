@@ -1,4 +1,3 @@
-{{- /* Canary rollout manifest for Argo Rollouts */ -}}
 {{- if .Values.rollout.enabled -}}
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
@@ -7,7 +6,7 @@ metadata:
   labels:
     app: {{ include "gblog.name" . }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.backend.replicaCount }}
   selector:
     matchLabels:
       app: {{ include "gblog.name" . }}
@@ -18,10 +17,10 @@ spec:
     spec:
       containers:
         - name: backend
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
           ports:
-            - containerPort: 80
+            - containerPort: 8081
   strategy:
     canary:
       analysis:

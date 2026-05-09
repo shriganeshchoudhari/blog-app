@@ -1,0 +1,1 @@
+ALTER TABLE blog.comments ADD COLUMN IF NOT EXISTS author TEXT;
